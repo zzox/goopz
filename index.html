@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>td2d</title>
+    <style type="text/css">
+        body {
+            background-color: slateblue;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        
+        canvas {
+            image-rendering: pixelated;
+            background-color: black;
+        }
+
+        .fixed {
+            position: fixed;
+        }
+
+        .none {
+            display: none;
+        }
+
+        p {
+            margin: 4px 8px;
+            color:antiquewhite;
+            font-family: monospace;
+        }
+    </style>
+    <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+</head>
+<body>
+    <canvas width="640" height="480" id="main-canvas"></canvas>
+    <div class="fixed">
+        <p></p>
+        <p></p>
+        <p></p>
+        <p></p>
+        <p></p>
+        <p></p>
+        <p></p>
+        <p></p>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+</body>
+</html>
