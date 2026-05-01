@@ -113,8 +113,8 @@ const pipeline = device.createRenderPipeline({
     // Backface culling since the cube is solid piece of geometry.
     // Faces pointing away from the camera will be occluded by faces
     // pointing toward the camera.
-    // cullMode: 'back',
-    cullMode: 'none',
+    cullMode: 'back',
+    // cullMode: 'none',
   },
 
   // Enable depth testing so that the fragment closest to the camera
@@ -156,6 +156,7 @@ const renderPassDescriptor: GPURenderPassDescriptor = {
   colorAttachments: [
     {
       view: undefined, // Assigned later
+      // view: texture, texture.createView(),
 
       clearValue: [0.3, 0.3, 0.3, 1.0],
       loadOp: 'clear',
@@ -187,7 +188,7 @@ function getTransformationMatrix() {
 }
 
 const next = () => {
-    const transformationMatrix = getTransformationMatrix();
+  const transformationMatrix = getTransformationMatrix();
   device.queue.writeBuffer(
     uniformBuffer,
     0,
@@ -206,8 +207,8 @@ const next = () => {
   passEncoder.setBindGroup(0, uniformBindGroup);
   passEncoder.setVertexBuffer(0, vertexBuffer);
   passEncoder.setIndexBuffer(indexBuffer, 'uint32')
-  // passEncoder.drawIndexed(mesh.indexBuffer.length);
-  passEncoder.draw(mesh.vertexBuffer.length / mesh.structureLength);
+  passEncoder.drawIndexed(mesh.indexBuffer.length);
+  // passEncoder.draw(mesh.vertexBuffer.length / mesh.structureLength);
   passEncoder.end()
   device.queue.submit([commandEncoder.finish()]);
   requestAnimationFrame(next)
@@ -216,7 +217,7 @@ const next = () => {
 
 const run = async () => {
   next()
-    console.log(adapter, device)
+  console.log(adapter, device)
 }
 
 run()
