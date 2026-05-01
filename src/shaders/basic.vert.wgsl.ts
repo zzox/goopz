@@ -8,7 +8,7 @@ struct Uniforms {
 struct VertexOutput {
   @builtin(position) Position : vec4f,
   @location(0) fragUV : vec2f,
-  @location(1) fragPosition: vec4f,
+  @location(1) fragColor : vec4f,
 }
 
 @vertex
@@ -21,6 +21,6 @@ fn main(
   var output : VertexOutput;
   output.Position = uniforms.modelViewProjectionMatrix * position;
   output.fragUV = uv;
-  output.fragPosition = 0.5 * (position + vec4(1.0, 1.0, 1.0, 1.0));
+  output.fragColor = color;
   return output;
 }`

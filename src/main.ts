@@ -4,7 +4,7 @@ import { mat4 } from 'wgpu-matrix';
 import { vert } from './shaders/basic.vert.wgsl'
 import { frag } from './shaders/vertexPositionColor.frag.wgsl'
 import { makeTexture } from './objects/texture';
-import { parseObj, sampleObj } from './objects/mesh';
+import { parseObj, sampleObj, obj2 } from './objects/mesh';
 // import { quitIfWebGPUNotAvailableOrMissingFeatures } from '../util';
 
 const canvas = document.getElementById('main-canvas') as HTMLCanvasElement
@@ -31,7 +31,7 @@ context.configure({
   format: presentationFormat,
 });
 
-const mesh = parseObj(sampleObj)
+const mesh = parseObj(obj2)
 
 const vertexBuffer = device.createBuffer({
   size: mesh.vertexBuffer.byteLength,
@@ -44,12 +44,12 @@ vertexBuffer.unmap();
 const indexBuffer = device.createBuffer({
   size: mesh.indexBuffer.byteLength,
   usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-  // mappedAtCreation: true,
+  mappedAtCreation: true,
 });
-new Float32Array(mesh.indexBuffer)
-// indexBuffer.unmap();
+new Uint32Array(indexBuffer.getMappedRange()).set(mesh.indexBuffer)
+indexBuffer.unmap();
 
-console.log(indexBuffer)
+console.log('indexBuffer', indexBuffer, mesh.indexBuffer)
 
 const pipeline = device.createRenderPipeline({
   layout: 'auto',
@@ -113,8 +113,8 @@ const pipeline = device.createRenderPipeline({
     // Backface culling since the cube is solid piece of geometry.
     // Faces pointing away from the camera will be occluded by faces
     // pointing toward the camera.
-    cullMode: 'none',
     // cullMode: 'back',
+    cullMode: 'none',
   },
 
   // Enable depth testing so that the fragment closest to the camera
@@ -139,8 +139,8 @@ const uniformBuffer = device.createBuffer({
 });
 
 const sampler = device.createSampler({
-  magFilter: 'linear',
-  minFilter: 'linear',
+  magFilter: 'nearest', // linear for smooth
+  minFilter: 'nearest', // linear for smooth
 });
 
 const uniformBindGroup = device.createBindGroup({
@@ -155,7 +155,7 @@ const uniformBindGroup = device.createBindGroup({
 const renderPassDescriptor: GPURenderPassDescriptor = {
   colorAttachments: [
     {
-      view: texture.createView(), // Assigned later
+      view: undefined, // Assigned later
 
       clearValue: [0.3, 0.3, 0.3, 1.0],
       loadOp: 'clear',
@@ -195,6 +195,7 @@ const next = () => {
     transformationMatrix.byteOffset,
     transformationMatrix.byteLength
   );
+
   renderPassDescriptor.colorAttachments[0].view = context
     .getCurrentTexture()
     .createView();
@@ -204,10 +205,10 @@ const next = () => {
   passEncoder.setPipeline(pipeline);
   passEncoder.setBindGroup(0, uniformBindGroup);
   passEncoder.setVertexBuffer(0, vertexBuffer);
-  passEncoder.setIndexBuffer(indexBuffer, 'uint16')
-  passEncoder.drawIndexed(mesh.indexBuffer.length);
-  // passEncoder.draw(mesh.vertexBuffer.length / mesh.structureLength);
-  passEncoder.end();
+  passEncoder.setIndexBuffer(indexBuffer, 'uint32')
+  // passEncoder.drawIndexed(mesh.indexBuffer.length);
+  passEncoder.draw(mesh.vertexBuffer.length / mesh.structureLength);
+  passEncoder.end()
   device.queue.submit([commandEncoder.finish()]);
   requestAnimationFrame(next)
   console.log('drawing', mesh.indexBuffer.length)

@@ -18,11 +18,10 @@ import { Vec2, vec2, vec3, Vec3, vec4, Vec4 } from "wgpu-matrix";
 // }
 
 export class Mesh {
-    // final vcol:Array<Color>;  // per-position vertex colors (unofficial extension)
     structureLength = 14
 
     vertexBuffer:Float32Array
-    indexBuffer:Float32Array
+    indexBuffer:Uint32Array
 
     // verticies:Vec4[];
     // normals:Vec4[];
@@ -34,34 +33,30 @@ export class Mesh {
     rot:Vec3 = vec3.create(0, 0, 0);
 
     constructor (verticies:Vec4[], normals:Vec4[], uvs:Vec2[], colors:Vec4[], indicies:number[]) {
-        // this.verticies = verticies;
-        // this.normals = normals;
-        // this.uvs = uvs;
-        // this.colors = colors;
-        // this.indicies = indicies;
-
         const numVerts = verticies.length
 
         this.vertexBuffer = new Float32Array(this.structureLength * indicies.length)
+        this.indexBuffer = new Uint32Array(indicies)
 
-        this.indexBuffer = new Float32Array(indicies)
+        // this.indexBuffer = this.indexBuffer.map((item, i) => 36 - i)
+        
+        // console.log(verticies, normals, uvs, colors, indicies)
+        // console.log(this.indexBuffer, this.vertexBuffer)
+        // for (let i = 0; i < numVerts; i++) {
+        //     this.vertexBuffer.set(verticies[i], (i * this.structureLength) + 0)
+        //     this.vertexBuffer.set(colors[i], (i * this.structureLength) + 4)
+        //     this.vertexBuffer.set(uvs[i], (i * this.structureLength) + 8)
+        //     this.vertexBuffer.set(normals[i], (i * this.structureLength) + 10)
+        // }
 
-        console.log(verticies, normals, uvs, colors, indicies)
-        for (let i = 0; i < numVerts; i++) {
-            this.vertexBuffer.set(verticies[i], (i * this.structureLength) + 0)
-            this.vertexBuffer.set(colors[i], (i * this.structureLength) + 4)
-            this.vertexBuffer.set(uvs[i], (i * this.structureLength) + 8)
-            this.vertexBuffer.set(normals[i], (i * this.structureLength) + 10)
-        }
-
-        console.log(this.indexBuffer, this.vertexBuffer)
-
-        // this.indicies.forEach((item, i) => {
-        //     this.vertexBuffer.set(verticies[item], (i * this.structureLength) + 0)
-        //     this.vertexBuffer.set(colors[item], (i * this.structureLength) + 4)
-        //     this.vertexBuffer.set(uvs[item], (i * this.structureLength) + 8)
-        //     this.vertexBuffer.set(normals[item], (i * this.structureLength) + 10)
-        // })
+        // this sets the verticies in order, but still doesn't work for using
+        // the index buffer
+        indicies.forEach((item, i) => {
+            this.vertexBuffer.set(verticies[item], (i * this.structureLength) + 0)
+            this.vertexBuffer.set(colors[item], (i * this.structureLength) + 4)
+            this.vertexBuffer.set(uvs[item], (i * this.structureLength) + 8)
+            this.vertexBuffer.set(normals[item], (i * this.structureLength) + 10)
+        })
     }
 }
 
