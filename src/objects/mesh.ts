@@ -18,11 +18,11 @@ import { Vec2, vec2, vec3, Vec3, vec4, Vec4 } from "wgpu-matrix";
 // }
 
 type MeshProps = {
-  verticies:Vec4[]
+  vertices:Vec4[]
   normals:Vec4[]
   uvs:Vec2[]
   colors:Vec4[]
-  indicies:number[]
+  indices:number[]
 }
 
 export class Mesh {
@@ -34,24 +34,24 @@ export class Mesh {
   uniformBindGroup:GPUBindGroup
   uniformBuffer:GPUBuffer
 
-  // verticies:Vec4[];
+  // vertices:Vec4[];
   // normals:Vec4[];
   // uvs:Vec2[];
   // colors:Vec4[];
-  // indicies:number[];
+  // indices:number[];
 
   pos:Vec3 = vec3.create(0, 0, 0);
   rot:Vec3 = vec3.create(0, 0, 0);
 
-  constructor ({ verticies, normals, uvs, colors, indicies }:MeshProps, device:GPUDevice, pipeline:GPURenderPipeline) {
-    const numVerts = verticies.length
+  constructor ({ vertices, normals, uvs, colors, indices }:MeshProps, device:GPUDevice, pipeline:GPURenderPipeline) {
+    const numVerts = vertices.length
 
-    const vb = new Float32Array(Mesh.structureLength * indicies.length)
-    const ib = new Uint32Array(indicies)
+    const vb = new Float32Array(Mesh.structureLength * indices.length)
+    const ib = new Uint32Array(indices)
 
-    // this sets the verticies in order we want without using the index buffer
-    // indicies.forEach((item, i) => {
-    //   vb.set(verticies[item], (i * Mesh.structureLength) + 0)
+    // this sets the vertices in order we want without using the index buffer
+    // indices.forEach((item, i) => {
+    //   vb.set(vertices[item], (i * Mesh.structureLength) + 0)
     //   vb.set(colors[item], (i * Mesh.structureLength) + 4)
     //   vb.set(uvs[item], (i * Mesh.structureLength) + 8)
     //   vb.set(normals[item], (i * Mesh.structureLength) + 10)
@@ -59,7 +59,7 @@ export class Mesh {
 
     // this works with the index buffer
     for (let i = 0; i < numVerts; i++) {
-      vb.set(verticies[i], (i * Mesh.structureLength) + 0)
+      vb.set(vertices[i], (i * Mesh.structureLength) + 0)
       vb.set(colors[i], (i * Mesh.structureLength) + 4)
       vb.set(uvs[i], (i * Mesh.structureLength) + 8)
       vb.set(normals[i], (i * Mesh.structureLength) + 10)
@@ -81,7 +81,6 @@ export class Mesh {
     new Uint32Array(this.indexBuffer.getMappedRange()).set(ib)
     this.indexBuffer.unmap();
 
-
     const uniformBufferSize = 4 * 16; // 4x4 matrix
     this.uniformBuffer = device.createBuffer({
       size: uniformBufferSize,
@@ -97,22 +96,42 @@ export class Mesh {
   }
 }
 
+export const planeMesh = ():MeshProps => {
+  const vertices = [
+    vec4.create(-1, -1, 0, 1), // bottom-left
+    vec4.create(1, -1, 0, 1), // bottom-right
+    vec4.create(1, 1, 0, 1), // top-right
+    vec4.create(-1, 1, 0, 1), // top-left
+  ]
+  const n = vec4.create(0, 0, 1, 1)
+  const normals = [n, n, n, n]
+  const uvs = [vec2.create(0,0), vec2.create(1,0), vec2.create(1,1), vec2.create(0,1)]
+  const colors = [
+    vec4.create(1.0, 1.0, 1.0, 1.0),
+    vec4.create(1.0, 1.0, 1.0, 1.0),
+    vec4.create(1.0, 1.0, 1.0, 1.0),
+    vec4.create(1.0, 1.0, 1.0, 1.0)
+  ]
+  const indices = [0,1,2, 0,2,3]
+  return { vertices, normals, uvs, colors, indices }
+}
+
 export const meshFromObj = (objStr:String):MeshProps => {
   const pos:Vec4[] = [];
   const vcol:(Vec4 | null)[] = [];  // per-position vertex colors (unofficial extension)
   const nrm:Vec4[] = [];
   const tuv:Vec2[] = [];
-  const verticies:Vec4[] = [];
+  const vertices:Vec4[] = [];
   const normals:Vec4[] = [];
   const uvs:Vec2[] = [];
   const colors:Vec4[] = [];
-  const indicies:number[] = [];
+  const indices:number[] = [];
 
   const cache = new Map<string, number>();
 
   // const vLines = lines.filter(line -> line.substr(0, 2) == 'v ');
   // const fLines = lines.filter(line -> line.substr(0, 2) == 'f ');
-  // trace('parsed ${vLines.length} verticies and ${fLines.length} faces');
+  // trace('parsed ${vLines.length} vertices and ${fLines.length} faces');
 
   objStr.split('\n').forEach(l => {
     const line = l.split(' ').filter(item => item != '')
@@ -148,8 +167,8 @@ export const meshFromObj = (objStr:String):MeshProps => {
           if (cache.get(key) != null) {
             fi.push(cache.get(key))
           } else {
-            const id = verticies.length
-            verticies.push(pos[vi])// ?? new Vec3())
+            const id = vertices.length
+            vertices.push(pos[vi])// ?? new Vec3())
             normals.push(nrm[ni])
             // normals.push(ni >= 0 && nrm[ni] != null ? nrm[ni] : vec4.create(0, 1, 0, 1))
             if (ti >= 0 && tuv[ti]) {
@@ -165,15 +184,16 @@ export const meshFromObj = (objStr:String):MeshProps => {
         }
         // Fan triangulation: [0,1,2], [0,2,3], [0,3,4], ...
         for (let i = 2; i < fi.length; i++) {
-            indicies.push(fi[0]!)
-            indicies.push(fi[i - 1]!)
-            indicies.push(fi[i]!)
+            // these items are reversed to do ccw instead of cw
+            indices.push(fi[i]!)
+            indices.push(fi[i - 1]!)
+            indices.push(fi[0]!)
         }
         break
     }
   })
 
-  return { verticies, normals, uvs, colors, indicies }
+  return { vertices, normals, uvs, colors, indices }
 }
 
 export const sampleObj = `v -1 -1 -1

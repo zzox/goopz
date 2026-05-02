@@ -4,7 +4,7 @@ import { Mat4, mat4, vec3 } from 'wgpu-matrix';
 import { vert } from './shaders/basic.vert.wgsl'
 import { frag } from './shaders/vertexPositionColor.frag.wgsl'
 import { makeTexture } from './objects/texture';
-import { meshFromObj, sampleObj, obj2, Mesh } from './objects/mesh';
+import { meshFromObj, sampleObj, obj2, Mesh, planeMesh } from './objects/mesh';
 // import { quitIfWebGPUNotAvailableOrMissingFeatures } from '../util';
 
 const canvas = document.getElementById('main-canvas') as HTMLCanvasElement
@@ -90,8 +90,8 @@ const pipeline = device.createRenderPipeline({
   primitive: {
     topology: 'triangle-list',
 
-    frontFace: 'cw',
-    // frontFace: 'ccw', // default
+    // frontFace: 'cw',
+    frontFace: 'ccw', // default
 
     // Backface culling since the cube is solid piece of geometry.
     // Faces pointing away from the camera will be occluded by faces
@@ -130,7 +130,7 @@ const uniformBindGroup1 = device.createBindGroup({
   ],
 });
 
-const renderPassDescriptor: GPURenderPassDescriptor = {
+const renderPassDescriptor:GPURenderPassDescriptor = {
   colorAttachments: [
     {
       view: undefined, // Assigned later
@@ -148,9 +148,7 @@ const renderPassDescriptor: GPURenderPassDescriptor = {
     depthLoadOp: 'clear',
     depthStoreOp: 'store',
   },
-};
-
-
+} as GPURenderPassDescriptor;
 
 function getTransformationMatrix(mesh:Mesh) {
 
@@ -192,6 +190,7 @@ const begin = () => {
   renderPassDescriptor.colorAttachments[0].view = context
     .getCurrentTexture()
     .createView();
+
   passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
 }
 
@@ -221,7 +220,7 @@ const end = () => {
 
 const meshes:Mesh[] = []
 
-for (let i = 0; i < 5000; i++) {
+for (let i = 0; i < 1; i++) {
   const mesh = new Mesh(meshFromObj(obj2), device, pipeline)
   mesh.pos[0] = -2 + Math.random() * 4
   mesh.pos[1] = -2 + Math.random() * 4
@@ -233,6 +232,17 @@ for (let i = 0; i < 5000; i++) {
 
   meshes.push(mesh)
 }
+
+const mesh = new Mesh(planeMesh(), device, pipeline)
+mesh.pos[0] = -2 + Math.random() * 4
+mesh.pos[1] = -2 + Math.random() * 4
+mesh.pos[2] = -2 + Math.random() * 4
+
+mesh.rot[0] = Math.random() * Math.PI
+mesh.rot[1] = Math.random() * Math.PI
+mesh.rot[2] = Math.random() * Math.PI
+
+meshes.push(mesh)
 
 const next = () => {
   begin();
