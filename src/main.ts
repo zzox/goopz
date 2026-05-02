@@ -178,13 +178,16 @@ function getTransformationMatrix() {
   const view = mat4.lookAt(vec3.create(2.5, 2.5, 5), camTarget, vec3.create(0, 1, 0))
   xRot += 0.01
   console.log(xRot)
-  // xRot = xRot % Math.PI 
+  // xRot = xRot % Math.PI
 
   mesh.pos[0] += 0.001
 
-  const model = mat4.rotate(mat4.translation(mesh.pos), [Math.sin(xRot), Math.cos(xRot), 0], 1)
+  // const model = mat4.rotate(mat4.translation(mesh.pos), [Math.sin(xRot), Math.cos(xRot), 0], 1)
+  const modelX = mat4.rotateX(mat4.translation(mesh.pos), xRot)
+  const modelY = mat4.rotateY(modelX, mesh.rot[1])
+  const modelZ = mat4.rotateZ(modelY, mesh.rot[2])
 
-  return mat4.multiply(projectionMatrix, mat4.multiply(view, model))
+  return mat4.multiply(projectionMatrix, mat4.multiply(view, modelZ))
 }
 
 const renderMesh = (mesh:Mesh) => {
