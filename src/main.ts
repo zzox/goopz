@@ -4,7 +4,7 @@ import { mat4 } from 'wgpu-matrix';
 import { vert } from './shaders/basic.vert.wgsl'
 import { frag } from './shaders/vertexPositionColor.frag.wgsl'
 import { makeTexture } from './objects/texture';
-import { parseObj, sampleObj, obj2 } from './objects/mesh';
+import { meshFromObj, sampleObj, obj2, Mesh } from './objects/mesh';
 // import { quitIfWebGPUNotAvailableOrMissingFeatures } from '../util';
 
 const canvas = document.getElementById('main-canvas') as HTMLCanvasElement
@@ -31,25 +31,7 @@ context.configure({
   format: presentationFormat,
 });
 
-const mesh = parseObj(obj2)
-
-const vertexBuffer = device.createBuffer({
-  size: mesh.vertexBuffer.byteLength,
-  usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-  mappedAtCreation: true,
-});
-new Float32Array(vertexBuffer.getMappedRange()).set(mesh.vertexBuffer);
-vertexBuffer.unmap();
-
-const indexBuffer = device.createBuffer({
-  size: mesh.indexBuffer.byteLength,
-  usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-  mappedAtCreation: true,
-});
-new Uint32Array(indexBuffer.getMappedRange()).set(mesh.indexBuffer)
-indexBuffer.unmap();
-
-console.log('indexBuffer', indexBuffer, mesh.indexBuffer)
+const mesh = new Mesh(meshFromObj(obj2), device)
 
 const pipeline = device.createRenderPipeline({
   layout: 'auto',
@@ -109,6 +91,9 @@ const pipeline = device.createRenderPipeline({
   },
   primitive: {
     topology: 'triangle-list',
+
+    frontFace: 'cw',
+    // frontFace: 'ccw', // default
 
     // Backface culling since the cube is solid piece of geometry.
     // Faces pointing away from the camera will be occluded by faces
@@ -177,9 +162,9 @@ const projectionMatrix = mat4.perspective((2 * Math.PI) / 5, aspect, 0.1, 100.0)
 const modelViewProjectionMatrix = mat4.create();
 
 function getTransformationMatrix() {
-  const viewMatrix = mat4.identity();
-  mat4.translate(viewMatrix, [0, 0, -4], viewMatrix);
-  const now = Date.now() / 1000;
+  const viewMatrix = mat4.identity()
+  mat4.translate(viewMatrix, [0, 0, -4], viewMatrix)
+  const now = Date.now() / 1000
   mat4.rotate(viewMatrix, [Math.sin(now), Math.cos(now), 0], 1, viewMatrix);
 
   mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
@@ -187,7 +172,7 @@ function getTransformationMatrix() {
   return modelViewProjectionMatrix;
 }
 
-const next = () => {
+const renderMesh = (mesh:Mesh) => {
   const transformationMatrix = getTransformationMatrix();
   device.queue.writeBuffer(
     uniformBuffer,
@@ -205,14 +190,18 @@ const next = () => {
   const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
   passEncoder.setPipeline(pipeline);
   passEncoder.setBindGroup(0, uniformBindGroup);
-  passEncoder.setVertexBuffer(0, vertexBuffer);
-  passEncoder.setIndexBuffer(indexBuffer, 'uint32')
-  passEncoder.drawIndexed(mesh.indexBuffer.length);
-  // passEncoder.draw(mesh.vertexBuffer.length / mesh.structureLength);
+  passEncoder.setVertexBuffer(0, mesh.vertexBuffer);
+  passEncoder.setIndexBuffer(mesh.indexBuffer, 'uint32')
+  passEncoder.drawIndexed(mesh.indexBuffer.size / 4); // byte size of 4
+  // passEncoder.draw(36);
   passEncoder.end()
   device.queue.submit([commandEncoder.finish()]);
+}
+
+const next = () => {
+  renderMesh(mesh)
   requestAnimationFrame(next)
-  console.log('drawing', mesh.indexBuffer.length)
+  // console.log('drawing', mesh.indexBuffer.length)
 }
 
 const run = async () => {

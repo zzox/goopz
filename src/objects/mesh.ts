@@ -17,123 +17,149 @@ import { Vec2, vec2, vec3, Vec3, vec4, Vec4 } from "wgpu-matrix";
 //     }
 // }
 
-export class Mesh {
-    structureLength = 14
-
-    vertexBuffer:Float32Array
-    indexBuffer:Uint32Array
-
-    // verticies:Vec4[];
-    // normals:Vec4[];
-    // uvs:Vec2[];
-    // colors:Vec4[];
-    // indicies:number[];
-
-    pos:Vec3 = vec3.create(0, 0, 0);
-    rot:Vec3 = vec3.create(0, 0, 0);
-
-    constructor (verticies:Vec4[], normals:Vec4[], uvs:Vec2[], colors:Vec4[], indicies:number[]) {
-        const numVerts = verticies.length
-
-        this.vertexBuffer = new Float32Array(this.structureLength * indicies.length)
-        this.indexBuffer = new Uint32Array(indicies)
-
-        // this works with the index buffer
-        for (let i = 0; i < numVerts; i++) {
-            this.vertexBuffer.set(verticies[i], (i * this.structureLength) + 0)
-            this.vertexBuffer.set(colors[i], (i * this.structureLength) + 4)
-            this.vertexBuffer.set(uvs[i], (i * this.structureLength) + 8)
-            this.vertexBuffer.set(normals[i], (i * this.structureLength) + 10)
-        }
-
-        // this sets the verticies in order we want without using the index buffer
-        // indicies.forEach((item, i) => {
-        //     this.vertexBuffer.set(verticies[item], (i * this.structureLength) + 0)
-        //     this.vertexBuffer.set(colors[item], (i * this.structureLength) + 4)
-        //     this.vertexBuffer.set(uvs[item], (i * this.structureLength) + 8)
-        //     this.vertexBuffer.set(normals[item], (i * this.structureLength) + 10)
-        // })
-    }
+type MeshProps = {
+  verticies:Vec4[]
+  normals:Vec4[]
+  uvs:Vec2[]
+  colors:Vec4[]
+  indicies:number[]
 }
 
-export const parseObj = (objStr:String):Mesh => {
-    const pos:Vec4[] = [];
-    const vcol:(Vec4 | null)[] = [];  // per-position vertex colors (unofficial extension)
-    const nrm:Vec4[] = [];
-    const tuv:Vec2[] = [];
-    const verticies:Vec4[] = [];
-    const normals:Vec4[] = [];
-    const uvs:Vec2[] = [];
-    const colors:Vec4[] = [];
-    const indicies:number[] = [];
+export class Mesh {
+  structureLength = 14
 
-    const cache = new Map<string, number>();
+  vertexBuffer:GPUBuffer // Float32Array
+  indexBuffer:GPUBuffer // Uint32Array
 
-    // const vLines = lines.filter(line -> line.substr(0, 2) == 'v ');
-    // const fLines = lines.filter(line -> line.substr(0, 2) == 'f ');
-    // trace('parsed ${vLines.length} verticies and ${fLines.length} faces');
+  // verticies:Vec4[];
+  // normals:Vec4[];
+  // uvs:Vec2[];
+  // colors:Vec4[];
+  // indicies:number[];
 
-    objStr.split('\n').forEach(l => {
-        const line = l.split(' ').filter(item => item != '')
+  pos:Vec3 = vec3.create(0, 0, 0);
+  rot:Vec3 = vec3.create(0, 0, 0);
 
-        console.log(line)
-        switch (line[0]) {
-            case 'v':
-                pos.push(vec4.create(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3]), 1));
-                // Unofficial extension: v x y z r g b (colors as floats 0-1)
-                if (line.length >= 7) {
-                    vcol.push(vec4.create(parseFloat(line[4]), parseFloat(line[5]), parseFloat(line[6]), 1))
-                } else {
-                    vcol.push(null);
-                }
-                break
-            case 'vn':
-                nrm.push(vec4.create(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3]), 1));
-                break
-            case 'vt':
-                tuv.push(vec2.create(parseFloat(line[1]), parseFloat(line[2])));
-                break
-            case 'f':
-                // Parse face vertex indices and fan-triangulate
-                const fi = [];
-                for (let i = 1; i < line.length; i++) {
-                    const s = line[i].split('/');
+  constructor ({ verticies, normals, uvs, colors, indicies }:MeshProps, device:GPUDevice) {
+    const numVerts = verticies.length
 
-                    // key for vertex index, uv index, normal index
-                    const vi = parseInt(s[0]) - 1;
-                    const ti = parseInt(s[1]) - 1;
-                    const ni = parseInt(s[2]) - 1;
-                    const key = `${vi}/${ti}/${ni}`
+    const vb = new Float32Array(this.structureLength * indicies.length)
+    const ib = new Uint32Array(indicies)
 
-                    if (cache.get(key) != null) {
-                        fi.push(cache.get(key))
-                    } else {
-                        const id = verticies.length;
-                        verticies.push(pos[vi]);// ?? new Vec3());
-                        normals.push(nrm[ni]);
-                        // normals.push(ni >= 0 && nrm[ni] != null ? nrm[ni] : vec4.create(0, 1, 0, 1));
-                        if (ti >= 0 && tuv[ti]) {
-                            uvs.push(tuv[ti]);
-                        } else {
-                            uvs.push(vec2.create(0, 0));
-                        }
-                        // Use vertex color from OBJ if present, otherwise default white
-                        colors.push(vcol[vi] ?? vec4.create(1, 1, 1, 1));
-                        cache.set(key, id);
-                        fi.push(id);
-                    }
-                }
-                // Fan triangulation: [0,1,2], [0,2,3], [0,3,4], ...
-                for (let i = 2; i < fi.length; i++) {
-                    indicies.push(fi[0]!);
-                    indicies.push(fi[i - 1]!);
-                    indicies.push(fi[i]!);
-                }
-                break
+    // this sets the verticies in order we want without using the index buffer
+    // indicies.forEach((item, i) => {
+    //   vb.set(verticies[item], (i * this.structureLength) + 0)
+    //   vb.set(colors[item], (i * this.structureLength) + 4)
+    //   vb.set(uvs[item], (i * this.structureLength) + 8)
+    //   vb.set(normals[item], (i * this.structureLength) + 10)
+    // })
+
+    // this works with the index buffer
+    for (let i = 0; i < numVerts; i++) {
+      vb.set(verticies[i], (i * this.structureLength) + 0)
+      vb.set(colors[i], (i * this.structureLength) + 4)
+      vb.set(uvs[i], (i * this.structureLength) + 8)
+      vb.set(normals[i], (i * this.structureLength) + 10)
+    }
+
+    this.vertexBuffer = device.createBuffer({
+      size: vb.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Float32Array(this.vertexBuffer.getMappedRange()).set(vb)
+    this.vertexBuffer.unmap();
+
+    this.indexBuffer = device.createBuffer({
+      size: ib.byteLength,
+      usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Uint32Array(this.indexBuffer.getMappedRange()).set(ib)
+    this.indexBuffer.unmap();
+
+    console.log('indexBuffer', this.indexBuffer)
+  }
+}
+
+export const meshFromObj = (objStr:String):MeshProps => {
+  const pos:Vec4[] = [];
+  const vcol:(Vec4 | null)[] = [];  // per-position vertex colors (unofficial extension)
+  const nrm:Vec4[] = [];
+  const tuv:Vec2[] = [];
+  const verticies:Vec4[] = [];
+  const normals:Vec4[] = [];
+  const uvs:Vec2[] = [];
+  const colors:Vec4[] = [];
+  const indicies:number[] = [];
+
+  const cache = new Map<string, number>();
+
+  // const vLines = lines.filter(line -> line.substr(0, 2) == 'v ');
+  // const fLines = lines.filter(line -> line.substr(0, 2) == 'f ');
+  // trace('parsed ${vLines.length} verticies and ${fLines.length} faces');
+
+  objStr.split('\n').forEach(l => {
+    const line = l.split(' ').filter(item => item != '')
+
+    console.log(line)
+    switch (line[0]) {
+      case 'v':
+        pos.push(vec4.create(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3]), 1));
+        // Unofficial extension: v x y z r g b (colors as floats 0-1)
+        if (line.length >= 7) {
+            vcol.push(vec4.create(parseFloat(line[4]), parseFloat(line[5]), parseFloat(line[6]), 1))
+        } else {
+            vcol.push(null);
         }
-    })
+        break
+      case 'vn':
+        nrm.push(vec4.create(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3]), 1));
+        break
+      case 'vt':
+        tuv.push(vec2.create(parseFloat(line[1]), parseFloat(line[2])));
+        break
+      case 'f':
+        // Parse face vertex indices and fan-triangulate
+        const fi = [];
+        for (let i = 1; i < line.length; i++) {
+          const s = line[i].split('/')
 
-    return new Mesh(verticies, normals, uvs, colors, indicies);
+          // key for vertex index, uv index, normal index
+          const vi = parseInt(s[0]) - 1
+          const ti = parseInt(s[1]) - 1
+          const ni = parseInt(s[2]) - 1
+          const key = `${vi}/${ti}/${ni}`
+
+          if (cache.get(key) != null) {
+            fi.push(cache.get(key))
+          } else {
+            const id = verticies.length
+            verticies.push(pos[vi])// ?? new Vec3())
+            normals.push(nrm[ni])
+            // normals.push(ni >= 0 && nrm[ni] != null ? nrm[ni] : vec4.create(0, 1, 0, 1))
+            if (ti >= 0 && tuv[ti]) {
+              uvs.push(tuv[ti])
+            } else {
+              uvs.push(vec2.create(0, 0))
+            }
+            // Use vertex color from OBJ if present, otherwise default white
+            colors.push(vcol[vi] ?? vec4.create(1, 1, 1, 1))
+            cache.set(key, id)
+            fi.push(id)
+          }
+        }
+        // Fan triangulation: [0,1,2], [0,2,3], [0,3,4], ...
+        for (let i = 2; i < fi.length; i++) {
+            indicies.push(fi[0]!)
+            indicies.push(fi[i - 1]!)
+            indicies.push(fi[i]!)
+        }
+        break
+    }
+  })
+
+  return { verticies, normals, uvs, colors, indicies }
 }
 
 export const sampleObj = `v -1 -1 -1
@@ -458,5 +484,5 @@ f 84//84 86//86 85//85
 f 85//85 86//86 74//74`;
 
 function faceParse (fv:String):number[] {
-    return fv.split('/').map(item => parseInt(item));
+  return fv.split('/').map(item => parseInt(item));
 }
