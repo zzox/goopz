@@ -26,10 +26,13 @@ type MeshProps = {
 }
 
 export class Mesh {
-  structureLength = 14
+  static structureLength = 14
 
   vertexBuffer:GPUBuffer // Float32Array
   indexBuffer:GPUBuffer // Uint32Array
+
+  uniformBindGroup:GPUBindGroup
+  uniformBuffer:GPUBuffer
 
   // verticies:Vec4[];
   // normals:Vec4[];
@@ -40,26 +43,26 @@ export class Mesh {
   pos:Vec3 = vec3.create(0, 0, 0);
   rot:Vec3 = vec3.create(0, 0, 0);
 
-  constructor ({ verticies, normals, uvs, colors, indicies }:MeshProps, device:GPUDevice) {
+  constructor ({ verticies, normals, uvs, colors, indicies }:MeshProps, device:GPUDevice, pipeline:GPURenderPipeline) {
     const numVerts = verticies.length
 
-    const vb = new Float32Array(this.structureLength * indicies.length)
+    const vb = new Float32Array(Mesh.structureLength * indicies.length)
     const ib = new Uint32Array(indicies)
 
     // this sets the verticies in order we want without using the index buffer
     // indicies.forEach((item, i) => {
-    //   vb.set(verticies[item], (i * this.structureLength) + 0)
-    //   vb.set(colors[item], (i * this.structureLength) + 4)
-    //   vb.set(uvs[item], (i * this.structureLength) + 8)
-    //   vb.set(normals[item], (i * this.structureLength) + 10)
+    //   vb.set(verticies[item], (i * Mesh.structureLength) + 0)
+    //   vb.set(colors[item], (i * Mesh.structureLength) + 4)
+    //   vb.set(uvs[item], (i * Mesh.structureLength) + 8)
+    //   vb.set(normals[item], (i * Mesh.structureLength) + 10)
     // })
 
     // this works with the index buffer
     for (let i = 0; i < numVerts; i++) {
-      vb.set(verticies[i], (i * this.structureLength) + 0)
-      vb.set(colors[i], (i * this.structureLength) + 4)
-      vb.set(uvs[i], (i * this.structureLength) + 8)
-      vb.set(normals[i], (i * this.structureLength) + 10)
+      vb.set(verticies[i], (i * Mesh.structureLength) + 0)
+      vb.set(colors[i], (i * Mesh.structureLength) + 4)
+      vb.set(uvs[i], (i * Mesh.structureLength) + 8)
+      vb.set(normals[i], (i * Mesh.structureLength) + 10)
     }
 
     this.vertexBuffer = device.createBuffer({
@@ -78,7 +81,19 @@ export class Mesh {
     new Uint32Array(this.indexBuffer.getMappedRange()).set(ib)
     this.indexBuffer.unmap();
 
-    console.log('indexBuffer', this.indexBuffer)
+
+    const uniformBufferSize = 4 * 16; // 4x4 matrix
+    this.uniformBuffer = device.createBuffer({
+      size: uniformBufferSize,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    this.uniformBindGroup = device.createBindGroup({
+      layout: pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: this.uniformBuffer }
+      ]
+    })
   }
 }
 
@@ -102,7 +117,6 @@ export const meshFromObj = (objStr:String):MeshProps => {
   objStr.split('\n').forEach(l => {
     const line = l.split(' ').filter(item => item != '')
 
-    console.log(line)
     switch (line[0]) {
       case 'v':
         pos.push(vec4.create(parseFloat(line[1]), parseFloat(line[2]), parseFloat(line[3]), 1));
