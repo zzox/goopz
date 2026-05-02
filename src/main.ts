@@ -1,6 +1,6 @@
 /// <reference types="@webgpu/types" />
 
-import { mat4 } from 'wgpu-matrix';
+import { Mat4, mat4, vec3 } from 'wgpu-matrix';
 import { vert } from './shaders/basic.vert.wgsl'
 import { frag } from './shaders/vertexPositionColor.frag.wgsl'
 import { makeTexture } from './objects/texture';
@@ -157,19 +157,34 @@ const renderPassDescriptor: GPURenderPassDescriptor = {
   },
 };
 
-const aspect = canvas.width / canvas.height;
-const projectionMatrix = mat4.perspective((2 * Math.PI) / 5, aspect, 0.1, 100.0);
-const modelViewProjectionMatrix = mat4.create();
+const aspect = canvas.width / canvas.height
+const projectionMatrix:Mat4 = mat4.perspective((2 * Math.PI) / 5, aspect, 0.1, 100.0)
+const modelViewProjectionMatrix = mat4.create()
+
+let xRot = 0.0
 
 function getTransformationMatrix() {
-  const viewMatrix = mat4.identity()
-  mat4.translate(viewMatrix, [0, 0, -4], viewMatrix)
-  const now = Date.now() / 1000
-  mat4.rotate(viewMatrix, [Math.sin(now), Math.cos(now), 0], 1, viewMatrix);
+  // const viewMatrix = mat4.identity()
+  // mat4.translate(viewMatrix, [0, 0, -4], viewMatrix)
+  // const now = Date.now() / 1000
+  // mat4.rotate(viewMatrix, [Math.sin(now), Math.cos(now), 0], 1, viewMatrix);
 
-  mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
+  // mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
 
-  return modelViewProjectionMatrix;
+  // return modelViewProjectionMatrix;
+
+  const camTarget = vec3.create(0, 0, 0)
+  // final proj = Mat4.perspectiveProjection(Math.PI / 4, this.width / this.height, 0.1, 100);
+  const view = mat4.lookAt(vec3.create(2.5, 2.5, 5), camTarget, vec3.create(0, 1, 0))
+  xRot += 0.01
+  console.log(xRot)
+  // xRot = xRot % Math.PI 
+
+  mesh.pos[0] += 0.001
+
+  const model = mat4.rotate(mat4.translation(mesh.pos), [Math.sin(xRot), Math.cos(xRot), 0], 1)
+
+  return mat4.multiply(projectionMatrix, mat4.multiply(view, model))
 }
 
 const renderMesh = (mesh:Mesh) => {
@@ -200,8 +215,8 @@ const renderMesh = (mesh:Mesh) => {
 
 const next = () => {
   renderMesh(mesh)
+  console.log('drawing', mesh.indexBuffer.size)
   requestAnimationFrame(next)
-  // console.log('drawing', mesh.indexBuffer.length)
 }
 
 const run = async () => {
