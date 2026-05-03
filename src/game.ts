@@ -145,7 +145,7 @@ export class Game {
         { binding: 0, resource: sampler },
         { binding: 1, resource: texture.createView() },
       ],
-    });
+    })
 
     this.renderPassDescriptor = {
       colorAttachments: [
@@ -186,7 +186,7 @@ export class Game {
     throw 'Game::draw not implemented'
   }
 
-  getTransformationMatrix(mesh:Mesh) {
+  getTransformationMatrices(mesh:Mesh) {
     const aspect = this.canvas.width / this.canvas.height
     const projectionMatrix:Mat4 = mat4.perspective((2 * Math.PI) / 5, aspect, 0.1, 100.0)
     const modelViewProjectionMatrix = mat4.create()
@@ -202,32 +202,44 @@ export class Game {
     const camTarget = vec3.create(0, 0, 0)
     // final proj = Mat4.perspectiveProjection(Math.PI / 4, this.width / this.height, 0.1, 100);
     const view = mat4.lookAt(vec3.create(2.5, 2.5, 5), camTarget, vec3.create(0, 1, 0))
-    mesh.rot[0] += 0.1
+    mesh.rot[0] += 0.01
     // xRot = xRot % Math.PI
 
     mesh.pos[0] += 0.01
 
     // const model = mat4.rotate(mat4.translation(mesh.pos), [Math.sin(xRot), Math.cos(xRot), 0], 1)
-    const modelX = mat4.rotateX(mat4.translation(mesh.pos), mesh.pos[0])
-    const modelY = mat4.rotateY(modelX, mesh.rot[1])
-    const modelZ = mat4.rotateZ(modelY, mesh.rot[2])
+    const modelX = mat4.translation(mesh.pos)
+    const modelY = mat4.rotateX(modelX, mesh.pos[0])
+    const modelZ = mat4.rotateY(modelY, mesh.rot[1])
+    const model = mat4.rotateZ(modelZ, mesh.rot[2])
 
     // console.log(mat4.multiply(projectionMatrix, mat4.multiply(view, modelZ)))
 
-    return mat4.multiply(projectionMatrix, mat4.multiply(view, modelZ))
+    return {
+      mvp: mat4.multiply(projectionMatrix, mat4.multiply(view, model)),
+      model
+    }
   }
 
   renderMesh (mesh:Mesh, i:number)  {
     if (!this.passEncoder || !this.commandEncoder) {
       throw 'In Game::renderMesh there missing intialized encoders'
     }
-    const transformationMatrix = this.getTransformationMatrix(mesh)
+    const { mvp: transformationMatrix, model } = this.getTransformationMatrices(mesh)
     this.device.queue.writeBuffer(
       mesh.uniformBuffer,
       0,
       transformationMatrix.buffer,
       transformationMatrix.byteOffset,
       transformationMatrix.byteLength
+    )
+
+    this.device.queue.writeBuffer(
+      mesh.uniformBuffer,
+      64,
+      model.buffer,
+      model.byteOffset,
+      model.byteLength
     )
 
     this.passEncoder.setPipeline(this.pipeline);
@@ -243,7 +255,7 @@ export class Game {
     this.commandEncoder = this.device.createCommandEncoder();
 
     // get the contexts current texture to render to
-    this.renderPassDescriptor.colorAttachments[0].view = this.context
+    (this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.context
       .getCurrentTexture()
       .createView();
 
@@ -257,13 +269,10 @@ export class Game {
     this.passEncoder.end()
     this.device.queue.submit([this.commandEncoder.finish()]);
   }
-
 }
 
 // const device = await adapter?.requestDevice({ requiredLimits: { maxStorageBuffersInVertexStage: 10 } })!;
 // quitIfWebGPUNotAvailableOrMissingFeatures(adapter, device);
-
-
 
 export class TestGame extends Game {
   meshes:Mesh[] = []
