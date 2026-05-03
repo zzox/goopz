@@ -3,7 +3,7 @@ export const vert = `
 struct Uniforms {
   modelViewProjectionMatrix : mat4x4f,
 }
-@binding(0) @group(0) var<uniform> uniforms : Uniforms;
+@binding(2) @group(1) var<uniform> uniforms : Uniforms;
 
 struct VertexOutput {
   @builtin(position) Position : vec4f,

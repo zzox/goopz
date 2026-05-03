@@ -141,10 +141,10 @@ export class Game {
     const texture = makeTexture(device)
 
     this.uniformBindGroup = device.createBindGroup({
-      layout: this.pipeline.getBindGroupLayout(1),
+      layout: this.pipeline.getBindGroupLayout(0),
       entries: [
-        { binding: 1, resource: sampler },
-        { binding: 2, resource: texture.createView() },
+        { binding: 0, resource: sampler },
+        { binding: 1, resource: texture.createView() },
       ],
     });
 
@@ -232,8 +232,8 @@ export class Game {
     )
 
     this.passEncoder.setPipeline(this.pipeline);
-    this.passEncoder.setBindGroup(0, mesh.uniformBindGroup);
-    this.passEncoder.setBindGroup(1, this.uniformBindGroup)
+    this.passEncoder.setBindGroup(0, this.uniformBindGroup)
+    this.passEncoder.setBindGroup(1, mesh.uniformBindGroup);
     this.passEncoder.setVertexBuffer(0, mesh.vertexBuffer);
     this.passEncoder.setIndexBuffer(mesh.indexBuffer, 'uint32')
     this.passEncoder.drawIndexed(mesh.indexBuffer.size / 4); // byte size of 4
@@ -270,7 +270,7 @@ export class TestGame extends Game {
   meshes:Mesh[] = []
 
   init () {
-    for (let i = 0; i < 1; i++) {
+    for (let i = 0; i < 100; i++) {
       const mesh = new Mesh(meshFromObj(obj2), this.device, this.pipeline)
       mesh.pos[0] = -2 + Math.random() * 4
       mesh.pos[1] = -2 + Math.random() * 4

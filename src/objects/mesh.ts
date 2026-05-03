@@ -88,9 +88,9 @@ export class Mesh {
     });
 
     this.uniformBindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
+      layout: pipeline.getBindGroupLayout(1),
       entries: [
-        { binding: 0, resource: this.uniformBuffer }
+        { binding: 2, resource: this.uniformBuffer }
       ]
     })
   }
