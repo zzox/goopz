@@ -1,5 +1,5 @@
 
-export const vert = `
+export const defaultVert = `
 struct Uniforms {
   modelViewProjectionMatrix : mat4x4f,
 }
@@ -23,4 +23,16 @@ fn main(
   output.fragUV = uv;
   output.fragColor = color;
   return output;
+}`
+
+export const defaultFrag = `
+@group(0) @binding(0) var mySampler: sampler;
+@group(0) @binding(1) var myTexture: texture_2d<f32>;
+
+@fragment
+fn main(
+  @location(0) fragUV: vec2f,
+  @location(1) fragColor: vec4f
+) -> @location(0) vec4f {
+  return textureSample(myTexture, mySampler, fragUV) * fragColor;
 }`

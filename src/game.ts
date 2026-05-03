@@ -1,8 +1,7 @@
 import { mat4, Mat4, vec3 } from 'wgpu-matrix'
-import { Mesh, meshFromObj, obj2, planeMesh } from './objects/mesh'
-import { makeTexture } from './objects/texture'
-import { vert } from './shaders/basic.vert.wgsl'
-import { frag } from './shaders/vertexPositionColor.frag.wgsl'
+import { Mesh, meshFromObj, obj2, planeMesh } from './core/mesh'
+import { makeTexture } from './core/texture'
+import { defaultVert, defaultFrag } from './core/shaders'
 
 export class Game {
   canvas:HTMLCanvasElement
@@ -53,7 +52,7 @@ export class Game {
       layout: 'auto',
       vertex: {
         module: device.createShaderModule({
-          code: vert,
+          code: defaultVert,
         }),
         buffers: [
           {
@@ -97,7 +96,7 @@ export class Game {
       },
       fragment: {
         module: device.createShaderModule({
-          code: frag,
+          code: defaultFrag,
         }),
         targets: [
           {
