@@ -33,9 +33,9 @@ export const defaultFrag = `
 @group(0) @binding(1) var myTexture: texture_2d<f32>;
 
 // Static directional lighting
-const lightDir = vec3f(1, 1, 1);
-const dirColor = vec3(1);
-const ambientColor = vec3f(0.1);
+const lightDir = vec3f(-1, -1, -1);
+const dirColor = vec3(0.3);
+const ambientColor = vec3f(0.7);
 
 @fragment
 fn main(
