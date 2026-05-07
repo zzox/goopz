@@ -23,13 +23,15 @@ export class Game {
 
   // TODO: move to scene
   paused:boolean = false
-  cam = new Camera()
+  cam:Camera
 
   fps:number = 60
   frameTime:number = 1000 / this.fps
 
   constructor (canvas:HTMLCanvasElement, debugDiv?:HTMLDivElement) {
     this.canvas = canvas
+
+    this.cam = new Camera(this.canvas.width / this.canvas.height)
 
     this.establishVars()
       .then(() => {
@@ -245,69 +247,35 @@ export class Game {
   }
 
   getTransformationMatrices(mesh:Mesh) {
-    const aspect = this.canvas.width / this.canvas.height
-    const projectionMatrix:Mat4 = mat4.perspective((2 * Math.PI) / 5, aspect, 0.1, 100.0)
-    // const modelViewProjectionMatrix = mat4.create()
-    // const viewMatrix = mat4.identity()
-    // mat4.translate(viewMatrix, [0, 0, -4], viewMatrix)
-    // const now = Date.now() / 1000
-    // mat4.rotate(viewMatrix, [Math.sin(now), Math.cos(now), 0], 1, viewMatrix);
-
-    // mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
-
-    // return modelViewProjectionMatrix;
-
     const camTarget = vec3.create(0, 0, 0)
     // final proj = Mat4.perspectiveProjection(Math.PI / 4, this.width / this.height, 0.1, 100);
-    const view = mat4.lookAt(this.cam.pos, camTarget, vec3.create(0, 1, 0))
-    mesh.rot[0] += 0.01
+
+    const view = this.cam.getViewAt()
+
+    mesh.rot[0] += 0.1
     // xRot = xRot % Math.PI
 
     mesh.pos[2] += 0.01
 
     // const model = mat4.rotate(mat4.translation(mesh.pos), [Math.sin(xRot), Math.cos(xRot), 0], 1)
     const modelX = mat4.translation(mesh.pos)
-    const modelY = mat4.rotateX(modelX, mesh.pos[0])
-    const modelZ = mat4.rotateY(modelY, mesh.rot[1])
-    const model = mat4.rotateZ(modelZ, mesh.rot[2])
-
-    // console.log(mat4.multiply(projectionMatrix, mat4.multiply(view, modelZ)))
-
-    return {
-      mvp: mat4.multiply(projectionMatrix, mat4.multiply(view, model)),
-      model
-    }
-  }
-
-  getBillboardTransformationMatrices(mesh:Mesh) {
-    const aspect = this.canvas.width / this.canvas.height
-    const projectionMatrix:Mat4 = mat4.perspective((2 * Math.PI) / 5, aspect, 0.1, 100.0)
-
-    const camTarget = vec3.create(0, 0, 0)
-    // final proj = Mat4.perspectiveProjection(Math.PI / 4, this.width / this.height, 0.1, 100);
-    const view = mat4.lookAt(this.cam.pos, camTarget, vec3.create(0, 1, 0))
-    mesh.rot[0] += 0.01
-    // xRot = xRot % Math.PI
-
-    mesh.pos[2] += 0.01
-
-    // const model = mat4.rotate(mat4.translation(mesh.pos), [Math.sin(xRot), Math.cos(xRot), 0], 1)
-    const modelX = mat4.translation(mesh.pos)
-    const modelY = mat4.rotateX(modelX, mesh.pos[0])
+    const modelY = mat4.rotateX(modelX, mesh.rot[0])
     const modelZ = mat4.rotateY(modelY, mesh.rot[1])
     const model = mat4.rotateZ(modelZ, mesh.rot[2])
 
     const modelView = mat4.multiply(view, model)
 
-    const bbModelView = mat4.create(1, 0, 0, modelView[3],
-    0, 1, 0, modelView[7],
-    0, 0, 1, modelView[11],
-    modelView[12], modelView[13], modelView[14], modelView[15]);
+    const finalModelView = mesh.billboard
+      ? mat4.create(1, 0, 0, modelView[3],
+        0, 1, 0, modelView[7],
+        0, 0, 1, modelView[11],
+        modelView[12], modelView[13], modelView[14], modelView[15]
+      ) : modelView
 
     // console.log(mat4.multiply(projectionMatrix, mat4.multiply(view, modelZ)))
 
     return {
-      mvp: mat4.multiply(projectionMatrix, bbModelView),
+      mvp: mat4.multiply(this.cam.proj, finalModelView),
       model
     }
   }
@@ -317,36 +285,6 @@ export class Game {
       throw 'In Game::renderMesh there missing intialized encoders'
     }
     const { mvp: transformationMatrix, model } = this.getTransformationMatrices(mesh)
-    this.device.queue.writeBuffer(
-      mesh.uniformBuffer,
-      0,
-      transformationMatrix.buffer,
-      transformationMatrix.byteOffset,
-      transformationMatrix.byteLength
-    )
-
-    this.device.queue.writeBuffer(
-      mesh.uniformBuffer,
-      64,
-      model.buffer,
-      model.byteOffset,
-      model.byteLength
-    )
-
-    this.passEncoder.setPipeline(this.pipeline);
-    this.passEncoder.setBindGroup(0, this.uniformBindGroup)
-    this.passEncoder.setBindGroup(1, mesh.uniformBindGroup);
-    this.passEncoder.setVertexBuffer(0, mesh.vertexBuffer);
-    this.passEncoder.setIndexBuffer(mesh.indexBuffer, 'uint32')
-    this.passEncoder.drawIndexed(mesh.indexBuffer.size / 4); // byte size of 4
-    // passEncoder.draw(36);
-  }
-
-  renderBB (mesh:Mesh)  {
-    if (!this.passEncoder || !this.commandEncoder) {
-      throw 'In Game::renderMesh there missing intialized encoders'
-    }
-    const { mvp: transformationMatrix, model } = this.getBillboardTransformationMatrices(mesh)
     this.device.queue.writeBuffer(
       mesh.uniformBuffer,
       0,
@@ -422,6 +360,7 @@ export class TestGame extends Game {
     mesh.rot[2] = Math.random() * Math.PI
 
     this.meshes.push(mesh)
+    mesh.billboard = true
   }
 
   update() {
@@ -440,12 +379,20 @@ export class TestGame extends Game {
     if (keys.get('d')) {
       this.cam.pos[0] += 0.1
     }
+
+    if (keys.get('q')) {
+      this.cam.rot[1] -= 0.03
+    }
+
+    if (keys.get('e')) {
+      this.cam.rot[1] += 0.03
+    }
   }
 
   draw() {
     this.begin()
     this.meshes.forEach((m, i) => this.renderMesh(m))
-    this.renderBB(this.meshes[this.meshes.length - 1])
+    // this.renderBB(this.meshes[this.meshes.length - 1])
     this.end()
 
     // if (Debug.on) {

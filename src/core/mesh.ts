@@ -43,6 +43,8 @@ export class Mesh {
   pos:Vec3 = vec3.create(0, 0, 0);
   rot:Vec3 = vec3.create(0, 0, 0);
 
+  billboard:boolean = false
+
   constructor ({ vertices, normals, uvs, colors, indices }:MeshProps, device:GPUDevice, pipeline:GPURenderPipeline) {
     const numVerts = vertices.length
 
