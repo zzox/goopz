@@ -201,11 +201,11 @@ export class Game {
 
     const camTarget = vec3.create(0, 0, 0)
     // final proj = Mat4.perspectiveProjection(Math.PI / 4, this.width / this.height, 0.1, 100);
-    const view = mat4.lookAt(vec3.create(2.5, 2.5, 5), camTarget, vec3.create(0, 1, 0))
+    const view = mat4.lookAt(vec3.create(0, 0, 5), camTarget, vec3.create(0, 1, 0))
     mesh.rot[0] += 0.01
     // xRot = xRot % Math.PI
 
-    mesh.pos[0] += 0.01
+    mesh.pos[2] += 0.01
 
     // const model = mat4.rotate(mat4.translation(mesh.pos), [Math.sin(xRot), Math.cos(xRot), 0], 1)
     const modelX = mat4.translation(mesh.pos)

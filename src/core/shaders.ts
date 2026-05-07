@@ -35,10 +35,21 @@ export const defaultFrag = `
 // Static directional lighting
 const lightDir = vec3f(-1, -1, -1);
 const dirColor = vec3(0.3);
-const ambientColor = vec3f(0.7);
+const ambientColor = vec3f(1.0);
+
+const fogColor = vec4f(0.47, 0.5, 0.67, 0.0);
+const fogDensity = f32(0.1);
+
+fn fog(density : f32, frag_coord : vec4f) -> f32 {
+  let LOG2 : f32 = -1.442695;
+  let dist = frag_coord.z / frag_coord.w * 0.1;
+  let d    = density * dist;
+  return 1.0 - clamp(exp2(d * d * LOG2), 0.0, 1.0);
+}
 
 @fragment
 fn main(
+  @builtin(position) Position : vec4f,
   @location(0) fragUV: vec2f,
   @location(1) fragColor: vec4f,
   @location(2) normal: vec3f
@@ -46,6 +57,6 @@ fn main(
   let texColor = textureSample(myTexture, mySampler, fragUV) * fragColor;
 
   let lightColor = saturate(ambientColor + max(dot(normal, lightDir), 0.0) * dirColor);
-
-  return vec4f(texColor.rgb * lightColor, texColor.a);
+  let color = vec4f(texColor.rgb * lightColor, texColor.a);
+  return mix(color, fogColor, fog(fogDensity, Position));
 }`
