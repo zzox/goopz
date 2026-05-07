@@ -1,4 +1,5 @@
 import { Mat4, mat4, vec3, Vec3 } from 'wgpu-matrix'
+import { transRot } from '../util/util'
 
 export class Camera {
   // cameras position
@@ -18,10 +19,7 @@ export class Camera {
   }
 
   getView ():Mat4 {
-    const viewX = mat4.translation(this.pos)
-    const viewY = mat4.rotateX(viewX, this.rot[0])
-    const viewZ = mat4.rotateY(viewY, this.rot[1])
-    return mat4.rotateZ(viewZ, this.rot[2])
+    return transRot(this.pos, this.rot)
   }
 
   getViewAt ():Mat4 {

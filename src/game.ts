@@ -4,7 +4,7 @@ import { makeTexture } from './core/texture'
 import { defaultVert, defaultFrag } from './core/shaders'
 import { justPressed, keys } from './core/keys'
 import { Debug } from './util/debug'
-import { average } from './util/util'
+import { average, transRot } from './util/util'
 import { Camera } from './core/camera'
 
 export class Game {
@@ -257,11 +257,7 @@ export class Game {
 
     mesh.pos[2] += 0.01
 
-    // const model = mat4.rotate(mat4.translation(mesh.pos), [Math.sin(xRot), Math.cos(xRot), 0], 1)
-    const modelX = mat4.translation(mesh.pos)
-    const modelY = mat4.rotateX(modelX, mesh.rot[0])
-    const modelZ = mat4.rotateY(modelY, mesh.rot[1])
-    const model = mat4.rotateZ(modelZ, mesh.rot[2])
+    const model = transRot(mesh.pos, mesh.rot)
 
     const modelView = mat4.multiply(view, model)
 
