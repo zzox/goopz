@@ -2,6 +2,10 @@ import { mat4, Mat4, vec3 } from 'wgpu-matrix'
 import { Mesh, meshFromObj, obj2, planeMesh } from './core/mesh'
 import { makeTexture } from './core/texture'
 import { defaultVert, defaultFrag } from './core/shaders'
+import { justPressed, keys } from './core/keys'
+import { Debug } from './util/debug'
+import { average } from './util/util'
+import { Camera } from './core/camera'
 
 export class Game {
   canvas:HTMLCanvasElement
@@ -14,6 +18,16 @@ export class Game {
   passEncoder?:GPURenderPassEncoder
   commandEncoder?:GPUCommandEncoder
 
+  acc:number = 0
+  prev:number = 0
+
+  // TODO: move to scene
+  paused:boolean = false
+  cam = new Camera()
+
+  fps:number = 60
+  frameTime:number = 1000 / this.fps
+
   constructor (canvas:HTMLCanvasElement, debugDiv?:HTMLDivElement) {
     this.canvas = canvas
 
@@ -25,6 +39,40 @@ export class Game {
         this.next(0)
       })
       .catch(e => console.error(e))
+
+    document.onkeydown = (event:KeyboardEvent) => {
+      switch (event.key) {
+        case 'ArrowUp':
+        case 'ArrowDown':
+        case 'ArrowLeft':
+        case 'ArrowRight':
+        case 'Space':
+          event.preventDefault()
+          break
+        case 'd':
+          Debug.on = !Debug.on
+          break
+        case 'p':
+          console.log(
+            `FPS: ${Debug.renderFrames.length}, avg: ${Math.round(average(Debug.renderTimes) * 1000)}us\n` +
+            `UPS: ${Debug.updateFrames.length}, avg: ${Math.round(average(Debug.updateTimes) * 1000)}us`
+          )
+          this.paused = !this.paused
+          break
+      }
+      if (event.repeat) return
+      keys.set(event.key, true)
+      justPressed.set(event.key, true)
+    }
+    document.onkeyup = (event:KeyboardEvent) => {
+      // event.preventDefault()
+      keys.set(event.key, false)
+    }
+
+// #start debug
+    Debug.renderTimes = [...new Array(300)].map(_ => 0) // 5 seconds on 60fps monitors
+    Debug.updateTimes = [...new Array(300)].map(_ => 0) // ~5 seconds
+// #end debug
   }
 
   async establishVars () {
@@ -169,8 +217,18 @@ export class Game {
   }
 
   next = (time:number) => {
-    this.update()
-    this.draw()
+    if (!this.paused) {
+      const delta = time - this.prev
+      this.acc += Math.min(delta, this.frameTime + 2.0)
+
+      if (this.acc > this.frameTime) {
+        this.update()
+        this.draw()
+        this.acc -= this.frameTime
+      }
+    }
+
+    this.prev = time
     requestAnimationFrame(this.next)
   }
 
@@ -189,7 +247,7 @@ export class Game {
   getTransformationMatrices(mesh:Mesh) {
     const aspect = this.canvas.width / this.canvas.height
     const projectionMatrix:Mat4 = mat4.perspective((2 * Math.PI) / 5, aspect, 0.1, 100.0)
-    const modelViewProjectionMatrix = mat4.create()
+    // const modelViewProjectionMatrix = mat4.create()
     // const viewMatrix = mat4.identity()
     // mat4.translate(viewMatrix, [0, 0, -4], viewMatrix)
     // const now = Date.now() / 1000
@@ -201,7 +259,7 @@ export class Game {
 
     const camTarget = vec3.create(0, 0, 0)
     // final proj = Mat4.perspectiveProjection(Math.PI / 4, this.width / this.height, 0.1, 100);
-    const view = mat4.lookAt(vec3.create(0, 0, 5), camTarget, vec3.create(0, 1, 0))
+    const view = mat4.lookAt(this.cam.pos, camTarget, vec3.create(0, 1, 0))
     mesh.rot[0] += 0.01
     // xRot = xRot % Math.PI
 
@@ -227,11 +285,11 @@ export class Game {
 
     const camTarget = vec3.create(0, 0, 0)
     // final proj = Mat4.perspectiveProjection(Math.PI / 4, this.width / this.height, 0.1, 100);
-    const view = mat4.lookAt(vec3.create(2.5, 2.5, 5), camTarget, vec3.create(0, 1, 0))
+    const view = mat4.lookAt(this.cam.pos, camTarget, vec3.create(0, 1, 0))
     mesh.rot[0] += 0.01
     // xRot = xRot % Math.PI
 
-    mesh.pos[0] += 0.01
+    mesh.pos[2] += 0.01
 
     // const model = mat4.rotate(mat4.translation(mesh.pos), [Math.sin(xRot), Math.cos(xRot), 0], 1)
     const modelX = mat4.translation(mesh.pos)
@@ -367,7 +425,21 @@ export class TestGame extends Game {
   }
 
   update() {
-    
+    if (keys.get('w')) {
+      this.cam.pos[2] -= 0.1
+    }
+
+    if (keys.get('s')) {
+      this.cam.pos[2] += 0.1
+    }
+
+    if (keys.get('a')) {
+      this.cam.pos[0] -= 0.1
+    }
+
+    if (keys.get('d')) {
+      this.cam.pos[0] += 0.1
+    }
   }
 
   draw() {
@@ -375,6 +447,17 @@ export class TestGame extends Game {
     this.meshes.forEach((m, i) => this.renderMesh(m))
     this.renderBB(this.meshes[this.meshes.length - 1])
     this.end()
+
+    // if (Debug.on) {
+    //   const pItems = Array.from(this.debugDiv.querySelectorAll('p'))
+    //   pItems[0].textContent = `FPS: ${Debug.renderFrames.length}, avg: ${Math.round(average(Debug.renderTimes) * 1000)}us`
+    //   pItems[1].textContent = `UPS: ${Debug.updateFrames.length}, avg: ${Math.round(average(Debug.updateTimes) * 1000)}us`
+    //   // pItems[2].textContent = `things: ${scene.things.length} checks: ${scene.checks}`
+    //   pItems[3].textContent = `scale: ${debugScale}`
+    //   this.debugDiv.classList.remove('none')
+    // } else {
+    //   this.debugDiv.classList.add('none')
+    // }
   }
 }
 
