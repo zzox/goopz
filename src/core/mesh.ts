@@ -98,12 +98,17 @@ export class Mesh {
   }
 }
 
-export const planeMesh = ():MeshProps => {
+export const planeMesh = (v1?:Vec3, v2?:Vec3, v3?:Vec3, v4?:Vec3):MeshProps => {
+  v1 ??= vec3.create(-1, -1, 0)
+  v2 ??= vec3.create(1, -1, 0)
+  v3 ??= vec3.create(1, 1, 0)
+  v4 ??= vec3.create(-1, 1, 0)
+
   const vertices = [
-    vec4.create(-1, -1, 0, 1), // bottom-left
-    vec4.create(1, -1, 0, 1), // bottom-right
-    vec4.create(1, 1, 0, 1), // top-right
-    vec4.create(-1, 1, 0, 1), // top-left
+    vec4.create(v1[0], v1[1], v1[2], 1), // bottom-left
+    vec4.create(v2[0], v2[1], v2[2], 1), // bottom-right
+    vec4.create(v3[0], v3[1], v3[2], 1), // top-right
+    vec4.create(v4[0], v4[1], v4[2], 1), // top-left
   ]
   const n = vec4.create(0, 0, 1, 1)
   const normals = [n, n, n, n]

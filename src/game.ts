@@ -9,6 +9,7 @@ import { Camera } from './core/camera'
 
 export class Game {
   canvas:HTMLCanvasElement
+  debugDiv?:HTMLDivElement
   context!:GPUCanvasContext
   device!:GPUDevice
   pipeline!:GPURenderPipeline
@@ -74,6 +75,8 @@ export class Game {
 // #start debug
     Debug.renderTimes = [...new Array(300)].map(_ => 0) // 5 seconds on 60fps monitors
     Debug.updateTimes = [...new Array(300)].map(_ => 0) // ~5 seconds
+
+    this.debugDiv = debugDiv
 // #end debug
   }
 
@@ -163,8 +166,8 @@ export class Game {
         // Backface culling since the cube is solid piece of geometry.
         // Faces pointing away from the camera will be occluded by faces
         // pointing toward the camera.
-        cullMode: 'back',
-        // cullMode: 'none',
+        // cullMode: 'back',
+        cullMode: 'none',
       },
 
       // Enable depth testing so that the fragment closest to the camera
@@ -250,12 +253,12 @@ export class Game {
     const camTarget = vec3.create(0, 0, 0)
     // final proj = Mat4.perspectiveProjection(Math.PI / 4, this.width / this.height, 0.1, 100);
 
-    const view = this.cam.getViewAt()
+    const view = this.cam.getView()
 
-    mesh.rot[0] += 0.1
+    // mesh.rot[0] += 0.1
     // xRot = xRot % Math.PI
 
-    mesh.pos[2] += 0.01
+    // mesh.pos[2] += 0.01
 
     const model = transRot(mesh.pos, mesh.rot)
 
@@ -307,12 +310,12 @@ export class Game {
   }
 
   begin () {
-    this.commandEncoder = this.device.createCommandEncoder();
+    this.commandEncoder = this.device.createCommandEncoder()
 
     // get the contexts current texture to render to
-    (this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.context
+    ;(this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.context
       .getCurrentTexture()
-      .createView();
+      .createView()
 
     this.passEncoder = this.commandEncoder.beginRenderPass(this.renderPassDescriptor)
   }
@@ -322,7 +325,7 @@ export class Game {
       throw 'In Game::end missing intialized encoders'
     }
     this.passEncoder.end()
-    this.device.queue.submit([this.commandEncoder.finish()]);
+    this.device.queue.submit([this.commandEncoder.finish()])
   }
 }
 
@@ -333,7 +336,7 @@ export class TestGame extends Game {
   meshes:Mesh[] = []
 
   init () {
-    for (let i = 0; i < 1; i++) {
+    for (let i = 0; i < 3; i++) {
       const mesh = new Mesh(meshFromObj(obj2), this.device, this.pipeline)
       mesh.pos[0] = -2 + Math.random() * 4
       mesh.pos[1] = -2 + Math.random() * 4
@@ -345,6 +348,22 @@ export class TestGame extends Game {
 
       this.meshes.push(mesh)
     }
+
+    const wall1 = new Mesh(
+      planeMesh(
+        vec3.create(0, 0, 4),
+        vec3.create(0, 0, -4),
+        vec3.create(0, 4, -4),
+        vec3.create(0, 4, 4)
+      ),
+      this.device,
+      this.pipeline
+    )
+
+    this.meshes.push(wall1)
+    // this.meshes.push(wall2)
+    // this.meshes.push(wall3)
+    // this.meshes.push(wall4)
 
     const mesh = new Mesh(planeMesh(), this.device, this.pipeline)
     mesh.pos[0] = -2 + Math.random() * 4
@@ -360,6 +379,9 @@ export class TestGame extends Game {
   }
 
   update() {
+    // move to parent?
+    this.cam.update()
+
     if (keys.get('w')) {
       this.cam.pos[2] -= 0.1
     }
@@ -377,30 +399,39 @@ export class TestGame extends Game {
     }
 
     if (keys.get('q')) {
-      this.cam.rot[1] -= 0.03
+      this.cam.yaw -= 0.1
     }
 
     if (keys.get('e')) {
-      this.cam.rot[1] += 0.03
+      this.cam.yaw += 0.1
     }
   }
 
   draw() {
     this.begin()
-    this.meshes.forEach((m, i) => this.renderMesh(m))
+    this.meshes.forEach((m) => this.renderMesh(m))
     // this.renderBB(this.meshes[this.meshes.length - 1])
     this.end()
 
-    // if (Debug.on) {
-    //   const pItems = Array.from(this.debugDiv.querySelectorAll('p'))
-    //   pItems[0].textContent = `FPS: ${Debug.renderFrames.length}, avg: ${Math.round(average(Debug.renderTimes) * 1000)}us`
-    //   pItems[1].textContent = `UPS: ${Debug.updateFrames.length}, avg: ${Math.round(average(Debug.updateTimes) * 1000)}us`
-    //   // pItems[2].textContent = `things: ${scene.things.length} checks: ${scene.checks}`
-    //   pItems[3].textContent = `scale: ${debugScale}`
-    //   this.debugDiv.classList.remove('none')
-    // } else {
-    //   this.debugDiv.classList.add('none')
-    // }
+// #start debug
+    if (!this.debugDiv) {
+      return
+    }
+
+    if (Debug.on) {
+      this.debugDiv.style.left = '0px'
+      this.debugDiv.style.top = '0px'
+      const pItems = Array.from(this.debugDiv.querySelectorAll('p'))
+      pItems[0].textContent = `FPS: ${Debug.renderFrames.length}, avg: ${Math.round(average(Debug.renderTimes) * 1000)}us`
+      pItems[1].textContent = `UPS: ${Debug.updateFrames.length}, avg: ${Math.round(average(Debug.updateTimes) * 1000)}us`
+      pItems[2].textContent = `camera: ${this.cam.pos}, ${this.cam.pitch},${this.cam.yaw}`
+      // pItems[2].textContent = `things: ${scene.things.length} checks: ${scene.checks}`
+      // pItems[3].textContent = `scale: ${debugScale}`
+      this.debugDiv.classList.remove('none')
+    } else {
+      this.debugDiv.classList.add('none')
+    }
+// #end
   }
 }
 
