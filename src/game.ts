@@ -383,19 +383,20 @@ export class TestGame extends Game {
     this.cam.update()
 
     if (keys.get('w')) {
-      this.cam.pos[2] -= 0.1
+      // this.cam.pos[2] -= 0.1
+      this.cam.moveForward(true)
     }
 
     if (keys.get('s')) {
-      this.cam.pos[2] += 0.1
-    }
-
-    if (keys.get('a')) {
-      this.cam.pos[0] -= 0.1
+      this.cam.moveForward(false)
     }
 
     if (keys.get('d')) {
-      this.cam.pos[0] += 0.1
+      this.cam.moveRight(true)
+    }
+
+    if (keys.get('a')) {
+      this.cam.moveRight(false)
     }
 
     if (keys.get('q')) {
@@ -404,6 +405,14 @@ export class TestGame extends Game {
 
     if (keys.get('e')) {
       this.cam.yaw += 0.1
+    }
+
+    if (keys.get('z')) {
+      this.cam.pos[1] += 0.1
+    }
+
+    if (keys.get('c')) {
+      this.cam.pos[1] -= 0.1
     }
   }
 
