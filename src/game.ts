@@ -15,6 +15,7 @@ export class Game {
   pipeline!:GPURenderPipeline
   renderPassDescriptor!:GPURenderPassDescriptor
   uniformBindGroup!:GPUBindGroup
+  textures:Map<string, GPUTexture> = new Map()
 
   passEncoder?:GPURenderPassEncoder
   commandEncoder?:GPUCommandEncoder
@@ -35,6 +36,7 @@ export class Game {
     this.cam = new Camera(this.canvas.width / this.canvas.height)
 
     this.establishVars()
+    .then(this.loadAssets.bind(this))
       .then(() => {
         // called once game is established
         this.init()
@@ -138,13 +140,6 @@ export class Game {
               },
             ],
           },
-          // {
-          //   attributes: [
-          //     {
-          //       shaderLocation: 0, offset: 0, format: 'uint32'
-          //     }
-          //   ]
-          // }
         ],
       },
       fragment: {
@@ -185,21 +180,6 @@ export class Game {
       usage: GPUTextureUsage.RENDER_ATTACHMENT,
     });
 
-    const sampler = device.createSampler({
-      magFilter: 'nearest', // linear for smooth
-      minFilter: 'nearest', // linear for smooth
-    });
-
-    const texture = makeTexture(device)
-
-    this.uniformBindGroup = device.createBindGroup({
-      layout: this.pipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: sampler },
-        { binding: 1, resource: texture.createView() },
-      ],
-    })
-
     this.renderPassDescriptor = {
       colorAttachments: [
         {
@@ -219,6 +199,39 @@ export class Game {
         depthStoreOp: 'store',
       },
     } as GPURenderPassDescriptor;
+  }
+
+  async loadAssets () {
+    const assets = ['assets/images/mario_fill.png']
+    await Promise.all(assets.map(asset => this.loadImage(asset)))
+  }
+
+  async loadImage (str:string) {
+    const response = await fetch(str)
+    const imageBitmap = await createImageBitmap(await response.blob());
+
+    const texture = this.device.createTexture({
+      size: [imageBitmap.width, imageBitmap.height, 1],
+      format: 'rgba8unorm',
+      usage:
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    this.device.queue.copyExternalImageToTexture(
+      { source: imageBitmap },
+      { texture: texture },
+      [imageBitmap.width, imageBitmap.height]
+    )
+
+    const splt = str.split('/')
+    const name = splt[splt.length - 1].split('.')[0]
+
+    if (this.textures.get(name)) {
+      throw 'Cant have named texture'
+    }
+
+    this.textures.set(name, texture)
   }
 
   next = (time:number) => {
@@ -300,6 +313,21 @@ export class Game {
       model.byteLength
     )
 
+    const texture = mesh.texture || makeTexture(this.device)
+
+    const sampler = this.device.createSampler({
+      magFilter: 'nearest', // linear for smooth
+      minFilter: 'nearest', // linear for smooth
+    });
+
+    this.uniformBindGroup = this.device.createBindGroup({
+      layout: this.pipeline.getBindGroupLayout(0),
+      entries: [
+        { binding: 0, resource: sampler },
+        { binding: 1, resource: texture.createView() },
+      ],
+    })
+
     this.passEncoder.setPipeline(this.pipeline);
     this.passEncoder.setBindGroup(0, this.uniformBindGroup)
     this.passEncoder.setBindGroup(1, mesh.uniformBindGroup);
@@ -359,6 +387,7 @@ export class TestGame extends Game {
       this.device,
       this.pipeline
     )
+    wall1.texture = this.textures.get('mario_fill')
 
     this.meshes.push(wall1)
     // this.meshes.push(wall2)

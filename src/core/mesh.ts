@@ -34,6 +34,8 @@ export class Mesh {
   uniformBindGroup:GPUBindGroup
   uniformBuffer:GPUBuffer
 
+  texture?:GPUTexture
+
   // vertices:Vec4[];
   // normals:Vec4[];
   // uvs:Vec2[];
