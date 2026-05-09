@@ -13,23 +13,17 @@ export class Camera {
   pos:Vec3
   // cameras rotation, doesn't matter when looking at something
   // rot:Vec3
-  // projection matrix
-  proj:Mat4
   // cameras target, doesn't matter when free looking
   // target:Vec3
 
   back:Vec3
 
-  aspect:number
-
-  constructor (aspect:number) {
+  constructor () {
     this.pos = vec3.create(0, 2, 5)
     // this.rot = vec3.create(0, 0, 0)
     const target = vec3.create(0, 2, 0)
-    this.proj = mat4.perspective((2 * Math.PI) / 5, aspect, 0.1, 100.0)
     this.back = vec3.normalize(vec3.sub(this.pos, target))
     this.recalculateAngles(this.back)
-    this.aspect = aspect
   }
 
   getView ():Mat4 {

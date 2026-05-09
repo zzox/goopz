@@ -33,7 +33,7 @@ export class Game {
   constructor (canvas:HTMLCanvasElement, debugDiv?:HTMLDivElement) {
     this.canvas = canvas
 
-    this.cam = new Camera(this.canvas.width / this.canvas.height)
+    this.cam = new Camera()
 
     this.establishVars()
     .then(this.loadAssets.bind(this))
@@ -273,6 +273,8 @@ export class Game {
 
     // mesh.pos[2] += 0.01
 
+    const projection = mat4.perspective((2 * Math.PI) / 6, this.canvas.width / this.canvas.height, 0.1, 100.0)
+
     const model = transRot(mesh.pos, mesh.rot)
 
     const modelView = mat4.multiply(view, model)
@@ -287,7 +289,7 @@ export class Game {
     // console.log(mat4.multiply(projectionMatrix, mat4.multiply(view, modelZ)))
 
     return {
-      mvp: mat4.multiply(this.cam.proj, finalModelView),
+      mvp: mat4.multiply(projection, finalModelView),
       model
     }
   }
