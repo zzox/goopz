@@ -17,7 +17,7 @@ import { Vec2, vec2, vec3, Vec3, vec4, Vec4 } from "wgpu-matrix";
 //     }
 // }
 
-type MeshProps = {
+export type MeshProps = {
   vertices:Vec4[]
   normals:Vec4[]
   uvs:Vec2[]

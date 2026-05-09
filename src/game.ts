@@ -1,5 +1,5 @@
 import { mat4, Mat4, vec2, vec3 } from 'wgpu-matrix'
-import { makeWall, Mesh, meshFromObj, obj2, planeMesh } from './core/mesh'
+import { makeWall, Mesh, meshFromObj, MeshProps, obj2, planeMesh } from './core/mesh'
 import { makeTexture } from './core/texture'
 import { defaultVert, defaultFrag } from './core/shaders'
 import { justPressed, keys } from './core/keys'
@@ -23,23 +23,27 @@ export class Game {
   acc:number = 0
   prev:number = 0
 
-  // TODO: move to scene
   paused:boolean = false
-  cam:Camera
 
   fps:number = 60
   frameTime:number = 1000 / this.fps
 
-  constructor (canvas:HTMLCanvasElement, debugDiv?:HTMLDivElement) {
-    this.canvas = canvas
+  currentScene!:Scene
 
-    this.cam = new Camera()
+  constructor (canvas:HTMLCanvasElement, InitialScene:typeof Scene, debugDiv?:HTMLDivElement) {
+    this.canvas = canvas
 
     this.establishVars()
     .then(this.loadAssets.bind(this))
       .then(() => {
         // called once game is established
-        this.init()
+        // this.init()
+
+        const scene = new InitialScene()
+        scene.game = this
+        scene.create()
+        this.currentScene = scene
+
         // kick off update loop
         this.next(0)
       })
@@ -240,8 +244,8 @@ export class Game {
       this.acc += Math.min(delta, this.frameTime + 2.0)
 
       if (this.acc > this.frameTime) {
-        this.update()
-        this.draw()
+        this.currentScene.update()
+        this.currentScene.draw()
         this.acc -= this.frameTime
       }
     }
@@ -250,23 +254,11 @@ export class Game {
     requestAnimationFrame(this.next)
   }
 
-  init () {
-    throw 'Game::init not implemented'
-  }
-
-  update () {
-    throw 'Game::update not implemented'
-  }
-
-  draw () {
-    throw 'Game::draw not implemented'
-  }
-
-  getTransformationMatrices(mesh:Mesh) {
+  getTransformationMatrices(mesh:Mesh, cam:Camera) {
     const camTarget = vec3.create(0, 0, 0)
     // final proj = Mat4.perspectiveProjection(Math.PI / 4, this.width / this.height, 0.1, 100);
 
-    const view = this.cam.getView()
+    const view = cam.getView()
 
     // mesh.rot[0] += 0.1
     // xRot = xRot % Math.PI
@@ -294,11 +286,11 @@ export class Game {
     }
   }
 
-  renderMesh (mesh:Mesh)  {
+  renderMesh (mesh:Mesh, cam:Camera)  {
     if (!this.passEncoder || !this.commandEncoder) {
       throw 'In Game::renderMesh there missing intialized encoders'
     }
-    const { mvp: transformationMatrix, model } = this.getTransformationMatrices(mesh)
+    const { mvp: transformationMatrix, model } = this.getTransformationMatrices(mesh, cam)
     this.device.queue.writeBuffer(
       mesh.uniformBuffer,
       0,
@@ -362,12 +354,40 @@ export class Game {
 // const device = await adapter?.requestDevice({ requiredLimits: { maxStorageBuffersInVertexStage: 10 } })!;
 // quitIfWebGPUNotAvailableOrMissingFeatures(adapter, device);
 
-export class TestGame extends Game {
+class Scene {
+  game!:Game
+  paused:boolean = false
+  cam!:Camera
+
+  create () {
+    this.cam = new Camera()
+  }
+
+  // init () {
+  //   throw 'Scene::init not implemented'
+  // }
+
+  update () {
+    throw 'Scene::update not implemented'
+  }
+
+  draw () {
+    throw 'Scene::draw not implemented'
+  }
+
+  makeMesh (meshProps:MeshProps):Mesh {
+    return new Mesh(meshProps, this.game.device, this.game.pipeline)
+  }
+}
+
+export class TestScene extends Scene {
   meshes:Mesh[] = []
 
-  init () {
+  create () {
+    super.create()
+
     for (let i = 0; i < 3; i++) {
-      const mesh = new Mesh(meshFromObj(obj2), this.device, this.pipeline)
+      const mesh = this.makeMesh(meshFromObj(obj2))
       mesh.pos[0] = -2 + Math.random() * 4
       mesh.pos[1] = -2 + Math.random() * 4
       mesh.pos[2] = -2 + Math.random() * 4
@@ -379,37 +399,21 @@ export class TestGame extends Game {
       this.meshes.push(mesh)
     }
 
-    const wall1 = new Mesh(
-      makeWall(vec2.create(-4, 4), vec2.create(-4, -4), 4),
-      this.device,
-      this.pipeline
-    )
-    wall1.texture = this.textures.get('mario_fill')
+    const wall1 = this.makeMesh(makeWall(vec2.create(-4, 4), vec2.create(-4, -4), 4))
+    wall1.texture = this.game.textures.get('mario_fill')
 
-    const wall2 = new Mesh(
-      makeWall(vec2.create(-4, -4), vec2.create(0, -12), 4),
-      this.device,
-      this.pipeline
-    )
+    const wall2 = this.makeMesh(makeWall(vec2.create(-4, -4), vec2.create(0, -12), 4))
 
-    const wall3 = new Mesh(
-      makeWall(vec2.create(0, -12), vec2.create(4, -4), 4),
-      this.device,
-      this.pipeline
-    )
+    const wall3 = this.makeMesh(makeWall(vec2.create(0, -12), vec2.create(4, -4), 4))
 
-    const wall4 = new Mesh(
-      makeWall(vec2.create(4, -4), vec2.create(4, 4), 4),
-      this.device,
-      this.pipeline
-    )
+    const wall4 = this.makeMesh(makeWall(vec2.create(4, -4), vec2.create(4, 4), 4))
 
     this.meshes.push(wall1)
     this.meshes.push(wall2)
     this.meshes.push(wall3)
     this.meshes.push(wall4)
 
-    const mesh = new Mesh(planeMesh(), this.device, this.pipeline)
+    const mesh = this.makeMesh(planeMesh())
     mesh.pos[0] = -2 + Math.random() * 4
     mesh.pos[1] = -2 + Math.random() * 4
     mesh.pos[2] = -2 + Math.random() * 4
@@ -461,28 +465,28 @@ export class TestGame extends Game {
   }
 
   draw() {
-    this.begin()
-    this.meshes.forEach((m) => this.renderMesh(m))
+    this.game.begin()
+    this.meshes.forEach((m) => this.game.renderMesh(m, this.cam))
     // this.renderBB(this.meshes[this.meshes.length - 1])
-    this.end()
+    this.game.end()
 
 // #start debug
-    if (!this.debugDiv) {
+    if (!this.game.debugDiv) {
       return
     }
 
     if (Debug.on) {
-      this.debugDiv.style.left = '0px'
-      this.debugDiv.style.top = '0px'
-      const pItems = Array.from(this.debugDiv.querySelectorAll('p'))
+      this.game.debugDiv.style.left = '0px'
+      this.game.debugDiv.style.top = '0px'
+      const pItems = Array.from(this.game.debugDiv.querySelectorAll('p'))
       pItems[0].textContent = `FPS: ${Debug.renderFrames.length}, avg: ${Math.round(average(Debug.renderTimes) * 1000)}us`
       pItems[1].textContent = `UPS: ${Debug.updateFrames.length}, avg: ${Math.round(average(Debug.updateTimes) * 1000)}us`
       pItems[2].textContent = `camera: ${displayVec3(this.cam.pos)}, ${this.cam.pitch.toFixed(2)},${this.cam.yaw.toFixed(2)}`
       // pItems[2].textContent = `things: ${scene.things.length} checks: ${scene.checks}`
       // pItems[3].textContent = `scale: ${debugScale}`
-      this.debugDiv.classList.remove('none')
+      this.game.debugDiv.classList.remove('none')
     } else {
-      this.debugDiv.classList.add('none')
+      this.game.debugDiv.classList.add('none')
     }
 // #end
   }
