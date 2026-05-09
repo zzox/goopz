@@ -1,12 +1,22 @@
 /// <reference types="@webgpu/types" />
 
-import { Game, TestGame } from './game';
+import { Game, TestGame } from './game'
+import { $id } from './js/ui'
 // import { quitIfWebGPUNotAvailableOrMissingFeatures } from '../util';
 
-const canvas = document.getElementById('main-canvas') as HTMLCanvasElement
-const fixed = document.getElementsByClassName('fixed')[0] as HTMLDivElement
+const canvas:HTMLCanvasElement = $id('main-canvas') as HTMLCanvasElement
+const fixed:HTMLDivElement = $id('canvas-debug') as HTMLDivElement
 
-new TestGame(
+const game = new TestGame(
   canvas,
   fixed
 )
+
+// listeners, TODO: start with intialization
+$id('light-x').onchange = (event) => {
+  console.log(event)
+}
+
+$id('light-y').onchange = () => {}
+
+$id('light-z').onchange = () => {}

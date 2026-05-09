@@ -5,9 +5,9 @@
     <style type="text/css">
         body {
             background-color: slateblue;
-            display: flex;
+            /* display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: center; */
             height: 100vh;
         }
         
@@ -29,21 +29,65 @@
             color:antiquewhite;
             font-family: monospace;
         }
+
+        label {
+            color: antiquewhite;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+        }
+
+        .left {
+            flex-basis: 50%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right {
+            flex-basis: 50%;
+        }
+
+        .section {
+            background-color: darkslategrey;
+            padding: 0.5em;
+            margin: 0.5em;
+            border-radius: 3px;
+        }
+
+        input[type="number"] {
+            max-width: 4em;
+        }
     </style>
     <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
-    <canvas width="640" height="480" id="main-canvas"></canvas>
-    <div class="fixed">
-        <p></p>
-        <p></p>
-        <p></p>
-        <p></p>
-        <p></p>
-        <p></p>
-        <p></p>
-        <p></p>
+    <div class="container">
+        <div class="left">
+            <div class="section">
+                <p>light</p>
+                <div class="ui-row">
+                    <label>x</label><input type="number" id="light-x">
+                    <label>y</label><input type="number" id="light-y">
+                    <label>z</label><input type="number" id="light-z">
+                </div>
+            </div>
+        </div>
+        <div class="right">
+            <canvas width="640" height="480" id="main-canvas"></canvas>
+            <div class="-fixed-" id="canvas-debug">
+                <p></p>
+                <p></p>
+                <p></p>
+                <p></p>
+                <p></p>
+                <p></p>
+                <p></p>
+                <p></p>
+            </div>
+        </div>
     </div>
     <script type="module" src="./src/main.ts"></script>
 </body>
