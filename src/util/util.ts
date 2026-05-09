@@ -23,6 +23,10 @@ export const mod = (x:number, div:number):number => {
   return x - Math.floor(Math.abs(x) / div) * div * Math.sign(x)
 }
 
+export const displayVec3 = (vec:Vec3, pos:number = 2) => {
+  return `${vec[0].toFixed(pos)},${vec[1].toFixed(pos)},${vec[2].toFixed(pos)}`
+}
+
 // // Returns `vec` rotated `angle` radians around `axis`
 // function rotate(vec: Vec3, axis: Vec3, angle:number): Vec3 {
 //   return vec3.transformMat4Upper3x3(vec, mat4.rotation(axis, angle));

@@ -4,7 +4,7 @@ import { makeTexture } from './core/texture'
 import { defaultVert, defaultFrag } from './core/shaders'
 import { justPressed, keys } from './core/keys'
 import { Debug } from './util/debug'
-import { average, transRot } from './util/util'
+import { average, displayVec3, transRot } from './util/util'
 import { Camera } from './core/camera'
 
 export class Game {
@@ -400,11 +400,11 @@ export class TestGame extends Game {
     }
 
     if (keys.get('q')) {
-      this.cam.yaw -= 0.1
+      this.cam.yaw -= 0.03
     }
 
     if (keys.get('e')) {
-      this.cam.yaw += 0.1
+      this.cam.yaw += 0.03
     }
 
     if (keys.get('z')) {
@@ -433,7 +433,7 @@ export class TestGame extends Game {
       const pItems = Array.from(this.debugDiv.querySelectorAll('p'))
       pItems[0].textContent = `FPS: ${Debug.renderFrames.length}, avg: ${Math.round(average(Debug.renderTimes) * 1000)}us`
       pItems[1].textContent = `UPS: ${Debug.updateFrames.length}, avg: ${Math.round(average(Debug.updateTimes) * 1000)}us`
-      pItems[2].textContent = `camera: ${this.cam.pos}, ${this.cam.pitch},${this.cam.yaw}`
+      pItems[2].textContent = `camera: ${displayVec3(this.cam.pos)}, ${this.cam.pitch.toFixed(2)},${this.cam.yaw.toFixed(2)}`
       // pItems[2].textContent = `things: ${scene.things.length} checks: ${scene.checks}`
       // pItems[3].textContent = `scale: ${debugScale}`
       this.debugDiv.classList.remove('none')
