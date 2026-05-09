@@ -1,5 +1,5 @@
-import { mat4, Mat4, vec3 } from 'wgpu-matrix'
-import { Mesh, meshFromObj, obj2, planeMesh } from './core/mesh'
+import { mat4, Mat4, vec2, vec3 } from 'wgpu-matrix'
+import { makeWall, Mesh, meshFromObj, obj2, planeMesh } from './core/mesh'
 import { makeTexture } from './core/texture'
 import { defaultVert, defaultFrag } from './core/shaders'
 import { justPressed, keys } from './core/keys'
@@ -378,21 +378,34 @@ export class TestGame extends Game {
     }
 
     const wall1 = new Mesh(
-      planeMesh(
-        vec3.create(0, 0, 4),
-        vec3.create(0, 0, -4),
-        vec3.create(0, 4, -4),
-        vec3.create(0, 4, 4)
-      ),
+      makeWall(vec2.create(-4, 4), vec2.create(-4, -4), 4),
       this.device,
       this.pipeline
     )
     wall1.texture = this.textures.get('mario_fill')
 
+    const wall2 = new Mesh(
+      makeWall(vec2.create(-4, -4), vec2.create(0, -12), 4),
+      this.device,
+      this.pipeline
+    )
+
+    const wall3 = new Mesh(
+      makeWall(vec2.create(0, -12), vec2.create(4, -4), 4),
+      this.device,
+      this.pipeline
+    )
+
+    const wall4 = new Mesh(
+      makeWall(vec2.create(4, -4), vec2.create(4, 4), 4),
+      this.device,
+      this.pipeline
+    )
+
     this.meshes.push(wall1)
-    // this.meshes.push(wall2)
-    // this.meshes.push(wall3)
-    // this.meshes.push(wall4)
+    this.meshes.push(wall2)
+    this.meshes.push(wall3)
+    this.meshes.push(wall4)
 
     const mesh = new Mesh(planeMesh(), this.device, this.pipeline)
     mesh.pos[0] = -2 + Math.random() * 4
@@ -429,11 +442,11 @@ export class TestGame extends Game {
     }
 
     if (keys.get('q')) {
-      this.cam.yaw -= 0.03
+      this.cam.yaw += 0.03
     }
 
     if (keys.get('e')) {
-      this.cam.yaw += 0.03
+      this.cam.yaw -= 0.03
     }
 
     if (keys.get('z')) {

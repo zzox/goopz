@@ -100,6 +100,14 @@ export class Mesh {
   }
 }
 
+export const makeWall = (p1:Vec2, p2:Vec2, height:number) =>
+  planeMesh(
+    vec3.create(p1[0], 0, p1[1]),
+    vec3.create(p2[0], 0, p2[1]),
+    vec3.create(p2[0], height, p2[1]),
+    vec3.create(p1[0], height, p1[1])
+  )
+
 export const planeMesh = (v1?:Vec3, v2?:Vec3, v3?:Vec3, v4?:Vec3):MeshProps => {
   v1 ??= vec3.create(-1, -1, 0)
   v2 ??= vec3.create(1, -1, 0)

@@ -23,9 +23,9 @@ export class Camera {
   aspect:number
 
   constructor (aspect:number) {
-    this.pos = vec3.create(0, 0, 5)
+    this.pos = vec3.create(0, 2, 5)
     // this.rot = vec3.create(0, 0, 0)
-    const target = vec3.create(0, 0, 0)
+    const target = vec3.create(0, 2, 0)
     this.proj = mat4.perspective((2 * Math.PI) / 5, aspect, 0.1, 100.0)
     this.back = vec3.normalize(vec3.sub(this.pos, target))
     this.recalculateAngles(this.back)
