@@ -19,7 +19,7 @@ export class Camera {
   back:Vec3
 
   constructor () {
-    this.pos = vec3.create(0, 2, 5)
+    this.pos = vec3.create(0, 2, 4)
     // this.rot = vec3.create(0, 0, 0)
     const target = vec3.create(0, 2, 0)
     this.back = vec3.normalize(vec3.sub(this.pos, target))

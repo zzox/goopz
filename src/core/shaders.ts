@@ -4,7 +4,7 @@ struct Uniforms {
   modelViewProjectionMatrix : mat4x4f,
   modelMatrix : mat4x4f
 }
-@binding(2) @group(1) var<uniform> uniforms : Uniforms;
+@group(1) @binding(2) var<uniform> uniforms : Uniforms;
 
 struct VertexOutput {
   @builtin(position) Position : vec4f,
@@ -31,14 +31,23 @@ fn main(
 export const defaultFrag = `
 @group(0) @binding(0) var mySampler: sampler;
 @group(0) @binding(1) var myTexture: texture_2d<f32>;
+@group(0) @binding(2) var<uniform> light : Lighting;
 
-// Static directional lighting
-const lightDir = vec3f(0, 0, 5);
-const dirColor = vec3(0.7);
-const ambientColor = vec3f(0.4);
+struct Lighting {
+  lightDir : vec3f,
+  dirColor : vec3f,
+  ambientColor : vec3f,
 
-const fogColor = vec4f(0.47, 0.5, 0.67, 0.0);
-const fogDensity = f32(0.1);
+  fogColor : vec4f,
+  fogDensity : f32,
+}
+
+// const lightDir = vec3f(0.0, 0.0, 1.0);
+// const dirColor = vec3f(0.4);
+// const ambientColor = vec3f(0.7);
+
+// const fogColor = vec4f(0.47, 0.5, 0.67, 0.0);
+// const fogDensity = f32(0.1);
 
 fn fog(density : f32, frag_coord : vec4f) -> f32 {
   let LOG2 : f32 = -1.442695;
@@ -55,8 +64,7 @@ fn main(
   @location(2) normal: vec3f
 ) -> @location(0) vec4f {
   let texColor = textureSample(myTexture, mySampler, fragUV) * fragColor;
-
-  let lightColor = saturate(ambientColor + max(dot(normal, lightDir), 0.0) * dirColor);
+  let lightColor = saturate(light.ambientColor + max(dot(normalize(normal), light.lightDir), 0.0) * light.dirColor);
   let color = vec4f(texColor.rgb * lightColor, texColor.a);
-  return mix(color, fogColor, fog(fogDensity, Position));
+  return mix(color, light.fogColor, fog(light.fogDensity, Position));
 }`

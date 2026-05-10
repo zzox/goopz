@@ -1,4 +1,4 @@
-import { mat4, Mat4, vec2, vec3 } from 'wgpu-matrix'
+import { mat4, Mat4, vec2, vec3, vec4 } from 'wgpu-matrix'
 import { makeWall, Mesh, meshFromObj, MeshProps, obj2, planeMesh } from './core/mesh'
 import { makeTexture } from './core/texture'
 import { defaultVert, defaultFrag } from './core/shaders'
@@ -165,8 +165,8 @@ export class Game {
         // Backface culling since the cube is solid piece of geometry.
         // Faces pointing away from the camera will be occluded by faces
         // pointing toward the camera.
-        // cullMode: 'back',
-        cullMode: 'none',
+        cullMode: 'back',
+        // cullMode: 'none',
       },
 
       // Enable depth testing so that the fragment closest to the camera
@@ -212,7 +212,7 @@ export class Game {
 
   async loadImage (str:string) {
     const response = await fetch(str)
-    const imageBitmap = await createImageBitmap(await response.blob());
+    const imageBitmap = await createImageBitmap(await response.blob())
 
     const texture = this.device.createTexture({
       size: [imageBitmap.width, imageBitmap.height, 1],
@@ -314,18 +314,73 @@ export class Game {
       minFilter: 'nearest', // linear for smooth
     });
 
+    const lightBufferSize = 4 * 32;
+    const lightUniformBuffer = this.device.createBuffer({
+      size: lightBufferSize,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    })
+
+    const lightDir = vec3.normalize([0.0, 0.0, 1.0])
+    const dirColor = vec3.create(0.5, 0.5, 0.5)
+    const ambientColor = vec3.create(0.1, 0.1, 0.1)
+
+    const fogColor = vec4.create(0.47, 0.5, 0.67, 0.0)
+    const fogDensity = new Float32Array([0.1])
+
+    this.device.queue.writeBuffer(
+      lightUniformBuffer,
+      0,
+      lightDir.buffer,
+      lightDir.byteOffset,
+      lightDir.byteLength
+    )
+
+    this.device.queue.writeBuffer(
+      lightUniformBuffer,
+      16,
+      dirColor.buffer,
+      dirColor.byteOffset,
+      dirColor.byteLength
+    )
+
+    this.device.queue.writeBuffer(
+      lightUniformBuffer,
+      32,
+      ambientColor.buffer,
+      ambientColor.byteOffset,
+      ambientColor.byteLength
+    )
+
+    this.device.queue.writeBuffer(
+      lightUniformBuffer,
+      48,
+      fogColor.buffer,
+      fogColor.byteOffset,
+      fogColor.byteLength
+    )
+
+    this.device.queue.writeBuffer(
+      lightUniformBuffer,
+      64,
+      fogDensity.buffer,
+      fogDensity.byteOffset,
+      fogDensity.byteLength
+    )
+
     this.uniformBindGroup = this.device.createBindGroup({
       layout: this.pipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: sampler },
         { binding: 1, resource: texture.createView() },
+        { binding: 2, resource: lightUniformBuffer }
       ],
     })
 
     this.passEncoder.setPipeline(this.pipeline);
     this.passEncoder.setBindGroup(0, this.uniformBindGroup)
-    this.passEncoder.setBindGroup(1, mesh.uniformBindGroup);
-    this.passEncoder.setVertexBuffer(0, mesh.vertexBuffer);
+    this.passEncoder.setBindGroup(1, mesh.uniformBindGroup)
+    // this.passEncoder.setBindGroup(2, lightUniformBuffer)
+    this.passEncoder.setVertexBuffer(0, mesh.vertexBuffer)
     this.passEncoder.setIndexBuffer(mesh.indexBuffer, 'uint32')
     this.passEncoder.drawIndexed(mesh.indexBuffer.size / 4); // byte size of 4
     // passEncoder.draw(36);
@@ -408,10 +463,13 @@ export class TestScene extends Scene {
 
     const wall4 = this.makeMesh(makeWall(vec2.create(4, -4), vec2.create(4, 4), 4))
 
+    const wall5 = this.makeMesh(makeWall(vec2.create(4, 4), vec2.create(-4, 4), 4))
+
     this.meshes.push(wall1)
     this.meshes.push(wall2)
     this.meshes.push(wall3)
     this.meshes.push(wall4)
+    this.meshes.push(wall5)
 
     const mesh = this.makeMesh(planeMesh())
     mesh.pos[0] = -2 + Math.random() * 4
