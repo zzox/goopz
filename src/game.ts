@@ -65,7 +65,7 @@ export class Game {
           break
         case 'p':
           console.log(
-            `FPS: ${Debug.renderFrames.length}, avg: ${Math.round(average(Debug.renderTimes) * 1000)}us\n` +
+            `FPS: ${Debug.drawFrames.length}, avg: ${Math.round(average(Debug.drawTimes) * 1000)}us\n` +
             `UPS: ${Debug.updateFrames.length}, avg: ${Math.round(average(Debug.updateTimes) * 1000)}us`
           )
           this.paused = !this.paused
@@ -81,7 +81,7 @@ export class Game {
     }
 
 // #start debug
-    Debug.renderTimes = [...new Array(300)].map(_ => 0) // 5 seconds on 60fps monitors
+    Debug.drawTimes = [...new Array(300)].map(_ => 0) // 5 seconds on 60fps monitors
     Debug.updateTimes = [...new Array(300)].map(_ => 0) // ~5 seconds
 
     this.debugDiv = debugDiv
@@ -246,9 +246,64 @@ export class Game {
       this.acc += Math.min(delta, this.frameTime + 2.0)
 
       if (this.acc > this.frameTime) {
+// #start debug
+        const updateStart = performance.now()
+// #end
+
         this.currentScene.update()
+
+        const time = performance.now()
+        const updateTime = time - updateStart
+        Debug.updateTimes.push(updateTime)
+        Debug.updateTimes.shift()
+
+        Debug.updateFrames.push(time)
+        while (true) {
+          if (Debug.updateFrames[0] != null && Debug.updateFrames[0] < time - 999.0) {
+            Debug.updateFrames.shift()
+          } else {
+            break;
+          }
+        }
+
+// #start debug
+        const drawStart = performance.now()
+// #end
+
         this.currentScene.draw()
+
+// #start debug
+        const rtime = performance.now()
+        const drawTime = rtime - drawStart
+        Debug.drawTimes.push(drawTime)
+        Debug.drawTimes.shift()
+
+        Debug.drawFrames.push(time)
+        while (true) {
+          if (Debug.drawFrames[0] != null && Debug.drawFrames[0] < time - 999.0) {
+            Debug.drawFrames.shift()
+          } else {
+            break;
+          }
+        }
         this.acc -= this.frameTime
+// #end
+
+// #start debug
+        if (this.debugDiv && Debug.on) {
+          this.debugDiv.style.left = '0px'
+          this.debugDiv.style.top = '0px'
+          const pItems = Array.from(this.debugDiv.querySelectorAll('p'))
+          pItems[0].textContent = `FPS: ${Debug.drawFrames.length}, avg: ${Math.round(average(Debug.drawTimes) * 1000)}us`
+          pItems[1].textContent = `UPS: ${Debug.updateFrames.length}, avg: ${Math.round(average(Debug.updateTimes) * 1000)}us`
+          pItems[2].textContent = `camera: ${displayVec3(this.currentScene.cam.pos)}, ${this.currentScene.cam.pitch.toFixed(2)},${this.currentScene.cam.yaw.toFixed(2)}`
+          // pItems[2].textContent = `things: ${scene.things.length} checks: ${scene.checks}`
+          // pItems[3].textContent = `scale: ${debugScale}`
+          this.debugDiv.classList.remove('none')
+        } else if (this.debugDiv) {
+          this.debugDiv.classList.add('none')
+        }
+// #end
       }
     }
 
@@ -461,6 +516,8 @@ export class TestScene extends Scene {
     this.meshes[2].anchor[1] = 1
     // this.meshes[2].anchor[2] = 6
 
+    this.meshes[1].anchor[1] = 1
+
     const wall1 = this.makeMesh(makeWall(vec2.create(-4, 4), vec2.create(-4, -4), 4))
     wall1.texture = this.game.textures.get('mario_fill')
 
@@ -530,6 +587,8 @@ export class TestScene extends Scene {
 
     this.meshes[2].rot[1] += 0.03
     this.meshes[2].rot[0] += 0.03
+
+    this.meshes[1].scale[1] *= 1.001
   }
 
   draw() {
@@ -537,26 +596,6 @@ export class TestScene extends Scene {
     this.meshes.forEach((m) => this.game.renderMesh(m, this.cam))
     // this.renderBB(this.meshes[this.meshes.length - 1])
     this.game.end()
-
-// #start debug
-    if (!this.game.debugDiv) {
-      return
-    }
-
-    if (Debug.on) {
-      this.game.debugDiv.style.left = '0px'
-      this.game.debugDiv.style.top = '0px'
-      const pItems = Array.from(this.game.debugDiv.querySelectorAll('p'))
-      pItems[0].textContent = `FPS: ${Debug.renderFrames.length}, avg: ${Math.round(average(Debug.renderTimes) * 1000)}us`
-      pItems[1].textContent = `UPS: ${Debug.updateFrames.length}, avg: ${Math.round(average(Debug.updateTimes) * 1000)}us`
-      pItems[2].textContent = `camera: ${displayVec3(this.cam.pos)}, ${this.cam.pitch.toFixed(2)},${this.cam.yaw.toFixed(2)}`
-      // pItems[2].textContent = `things: ${scene.things.length} checks: ${scene.checks}`
-      // pItems[3].textContent = `scale: ${debugScale}`
-      this.game.debugDiv.classList.remove('none')
-    } else {
-      this.game.debugDiv.classList.add('none')
-    }
-// #end
   }
 }
 
