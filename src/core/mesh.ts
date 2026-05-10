@@ -42,8 +42,10 @@ export class Mesh {
   // colors:Vec4[];
   // indices:number[];
 
-  pos:Vec3 = vec3.create(0, 0, 0);
-  rot:Vec3 = vec3.create(0, 0, 0);
+  pos:Vec3 = vec3.create(0, 0, 0)
+  rot:Vec3 = vec3.create(0, 0, 0)
+  anchor:Vec3 = vec3.create(0, 0, 0)
+  scale:Vec3 = vec3.create(1, 1, 1)
 
   billboard:boolean = false
 
@@ -123,7 +125,12 @@ export const planeMesh = (v1?:Vec3, v2?:Vec3, v3?:Vec3, v4?:Vec3):MeshProps => {
   const n = vec4.create(0, 0, 1, 1)
   const normals = [n, n, n, n]
   const uvs = [vec2.create(0,0), vec2.create(1,0), vec2.create(1,1), vec2.create(0,1)]
-  const colors = [
+  const colors = Math.random() < 0.1 ? [
+    vec4.create(1.0, 1.0, 1.0, 1.0),
+    vec4.create(1.0, 1.0, 1.0, 1.0),
+    vec4.create(1.0, 1.0, 1.0, 1.0),
+    vec4.create(1.0, 1.0, 1.0, 1.0)
+  ] : [
     vec4.create(1.0, 1.0, 1.0, 1.0),
     vec4.create(1.0, 1.0, 1.0, 1.0),
     vec4.create(1.0, 1.0, 1.0, 1.0),

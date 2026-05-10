@@ -1,4 +1,4 @@
-import { mat4, Mat4, Vec3 } from 'wgpu-matrix'
+import { mat4, Mat4, vec3, Vec3 } from 'wgpu-matrix'
 
 export const average = (arr:number[]):number => {
   if (arr.length === 0) return 0
@@ -6,11 +6,14 @@ export const average = (arr:number[]):number => {
 }
 
 // translate and rotate a point and a rotation
-export const transRot = (pos:Vec3, rot:Vec3):Mat4 => {
+export const transRot = (pos:Vec3, rot:Vec3, anchor:Vec3, scale:Vec3):Mat4 => {
   const viewX = mat4.translation(pos)
   const viewY = mat4.rotateX(viewX, rot[0])
   const viewZ = mat4.rotateY(viewY, rot[1])
-  return mat4.rotateZ(viewZ, rot[2])
+  const r = mat4.rotateZ(viewZ, rot[2])
+  const s = mat4.scale(r, scale)
+  // return vec3.scale(r, 1)
+  return mat4.mul(s, mat4.translation([anchor[0], anchor[1], anchor[2]]))
 }
 
 // Returns `x` clamped between [`min` .. `max`]

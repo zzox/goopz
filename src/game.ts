@@ -269,7 +269,7 @@ export class Game {
 
     const projection = mat4.perspective((2 * Math.PI) / 6, this.canvas.width / this.canvas.height, 0.1, 100.0)
 
-    const model = transRot(mesh.pos, mesh.rot)
+    const model = transRot(mesh.pos, mesh.rot, mesh.anchor, mesh.scale)
 
     const modelView = mat4.multiply(view, model)
 
@@ -324,7 +324,7 @@ export class Game {
 
     const light = vec3.normalize(this.lightDir)
     const dirColor = vec3.create(0.5, 0.5, 0.5)
-    const ambientColor = vec3.create(0.7, 0.7, 0.7)
+    const ambientColor = vec3.create(0.1, 0.1, 0.1)
 
     const fogColor = vec4.create(0.47, 0.5, 0.67, 0.0)
     const fogDensity = new Float32Array([0.5])
@@ -456,6 +456,11 @@ export class TestScene extends Scene {
       this.meshes.push(mesh)
     }
 
+    this.meshes[2].scale[1] = 3
+    // this.meshes[2].anchor[0] = 6
+    this.meshes[2].anchor[1] = 1
+    // this.meshes[2].anchor[2] = 6
+
     const wall1 = this.makeMesh(makeWall(vec2.create(-4, 4), vec2.create(-4, -4), 4))
     wall1.texture = this.game.textures.get('mario_fill')
 
@@ -522,6 +527,9 @@ export class TestScene extends Scene {
     if (keys.get('c')) {
       this.cam.pos[1] -= 0.1
     }
+
+    this.meshes[2].rot[1] += 0.03
+    this.meshes[2].rot[0] += 0.03
   }
 
   draw() {
