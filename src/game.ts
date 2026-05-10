@@ -1,4 +1,4 @@
-import { mat4, Mat4, vec2, vec3, vec4 } from 'wgpu-matrix'
+import { mat4, Mat4, vec2, Vec3, vec3, vec4 } from 'wgpu-matrix'
 import { makeWall, Mesh, meshFromObj, MeshProps, obj2, planeMesh } from './core/mesh'
 import { makeTexture } from './core/texture'
 import { defaultVert, defaultFrag } from './core/shaders'
@@ -29,6 +29,8 @@ export class Game {
   frameTime:number = 1000 / this.fps
 
   currentScene!:Scene
+
+  lightDir:Vec3 = vec3.create(0, 0, 1)
 
   constructor (canvas:HTMLCanvasElement, InitialScene:typeof Scene, debugDiv?:HTMLDivElement) {
     this.canvas = canvas
@@ -320,19 +322,19 @@ export class Game {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     })
 
-    const lightDir = vec3.normalize([0.0, 0.0, 1.0])
+    const light = vec3.normalize(this.lightDir)
     const dirColor = vec3.create(0.5, 0.5, 0.5)
-    const ambientColor = vec3.create(0.1, 0.1, 0.1)
+    const ambientColor = vec3.create(0.7, 0.7, 0.7)
 
     const fogColor = vec4.create(0.47, 0.5, 0.67, 0.0)
-    const fogDensity = new Float32Array([0.1])
+    const fogDensity = new Float32Array([0.5])
 
     this.device.queue.writeBuffer(
       lightUniformBuffer,
       0,
-      lightDir.buffer,
-      lightDir.byteOffset,
-      lightDir.byteLength
+      light.buffer,
+      light.byteOffset,
+      light.byteLength
     )
 
     this.device.queue.writeBuffer(
