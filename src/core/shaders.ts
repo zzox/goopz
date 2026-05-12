@@ -70,88 +70,50 @@ fn main(
 }`
 
 export const wireframeShader = `
-// struct Uniforms {
-// 	world           : mat4x4<f32>,
-// 	view            : mat4x4<f32>,
-// 	proj            : mat4x4<f32>,
-// 	screen_width    : f32,
-// 	screen_height   : f32,
-// };
-
 struct Uniforms {
   modelViewProjectionMatrix : mat4x4f,
   modelMatrix : mat4x4f
 }
 
-struct VertexOutput {
+struct VSOut {
   @builtin(position) Position : vec4f,
-  // @location(0) fragUV : vec2f,
-  // @location(1) fragColor : vec4f,
-  // @location(2) normal : vec3f
 }
 
-struct U32s {
-	values : array<u32>,
-};
-
-struct F32s {
-	values : array<f32>,
-};
-
-struct VertexInput {
-	@builtin(instance_index) instanceID : u32,
-	@builtin(vertex_index) vertexID : u32,
-};
-
-// struct VertexOutput {
-// 	@builtin(position) position : vec4<f32>,
-// 	@location(0) color : vec4<f32>,
-// };
-
-// @binding(0) @group(0) var<uniform> uniforms        : Uniforms;
 @binding(0) @group(0) var<uniform> uniforms        : Uniforms;
-@binding(1) @group(0) var<storage, read> positions : F32s;
-@binding(2) @group(0) var<storage, read> indices   : U32s;
-// @binding(3) @group(0) var<storage, read> indices   : U32s;
+@group(0) @binding(1) var<storage, read> positions: array<f32>;
+@group(0) @binding(2) var<storage, read> indices: array<u32>;
+
+const stride = 14u;
 
 @vertex
-fn main_vertex(vertex : VertexInput) -> VertexOutput {
-	var localToElement = array<u32, 6>(0u, 1u, 1u, 2u, 2u, 0u);
+fn main_vertex(@builtin(vertex_index) vNdx: u32) -> VSOut {
+  let triNdx = vNdx / 6;
+  // 0 1 0 1 0 1  0 1 0 1 0 1  vNdx % 2
+  // 0 0 1 1 2 2  3 3 4 4 5 5  vNdx / 2
+  // 0 1 1 2 2 3  3 4 4 5 5 6  vNdx % 2 + vNdx / 2
+  // 0 1 1 2 2 0  0 1 1 2 2 0  (vNdx % 2 + vNdx / 2) % 3
+  let vertNdx = (vNdx % 2 + vNdx / 2) % 3;
+  let index = indices[triNdx * 3 + vertNdx];
 
-	var triangleIndex = vertex.vertexID / 6u;
-	var localVertexIndex = vertex.vertexID % 6u;
+  // note:
+  //
+  // * if your indices are U16 you could use this
+  //
+  //  let indexNdx = triNdx * 3 + vertNdx;
+  //  let twoIndices = indices[indexNdx / 2];  // indices is u32 but we want u16
+  //  let index = (twoIndices >> ((indexNdx & 1) * 16)) & 0xFFFF;
+  //
+  // * if you're not using indices you could use this
+  //
+  //  let index = triNdx * 3 + vertNdx;
 
-	var elementIndexIndex = 3u * triangleIndex + localToElement[localVertexIndex];
-	var elementIndex = indices.values[elementIndexIndex];
+  let pNdx = index * stride;
+  let position = vec4f(positions[pNdx], positions[pNdx + 1], positions[pNdx + 2], 1);
 
-	var position = vec4<f32>(
-		positions.values[3u * elementIndex + 0u],
-		positions.values[3u * elementIndex + 1u],
-		positions.values[3u * elementIndex + 2u],
-		1.0
-	);
-
-	// position = uniforms.proj * uniforms.view * uniforms.world * position;
-
-	// var color_u32 = colors.values[elementIndex];
-	// var color = vec4<f32>(
-	// 	f32((color_u32 >>  0u) & 0xFFu) / 255.0,
-	// 	f32((color_u32 >>  8u) & 0xFFu) / 255.0,
-	// 	f32((color_u32 >> 16u) & 0xFFu) / 255.0,
-	// 	f32((color_u32 >> 24u) & 0xFFu) / 255.0,
-	// );
-
-	var output : VertexOutput;
-	// output.position = position;
-  output.Position = uniforms.modelViewProjectionMatrix * position;
-	// output.color = color;
-
-	return output;
+  var vOut: VSOut;
+  vOut.Position = uniforms.modelViewProjectionMatrix * position;
+  return vOut;
 }
-
-// struct FragmentInput {
-// 	@location(0) color : vec4<f32>,
-// };
 
 struct FragmentOutput {
 	@location(0) color : vec4<f32>,
@@ -166,5 +128,4 @@ fn main_fragment() -> FragmentOutput {
 	output.color = ccolor;
 
 	return output;
-}
-`
+}`

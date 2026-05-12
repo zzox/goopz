@@ -61,7 +61,7 @@ export class Game {
         case 'Space':
           event.preventDefault()
           break
-        case 'd':
+        case 'f':
           Debug.on = !Debug.on
           break
         case 'p':
@@ -180,6 +180,7 @@ export class Game {
         depthWriteEnabled: true,
         depthCompare: 'less',
         format: 'depth24plus',
+        depthBias: 1,
       },
     });
 
@@ -209,10 +210,10 @@ export class Game {
 		});
 
 		this.wireframePipeline = device.createRenderPipeline({
-			layout: device.createPipelineLayout({
-				bindGroupLayouts: [layout]
-			}),
-      // layout: 'auto',
+			// layout: device.createPipelineLayout({
+			// 	bindGroupLayouts: [layout]
+			// }),
+      layout: 'auto',
       label: 'wf',
 			vertex: {
 				module,
@@ -226,11 +227,11 @@ export class Game {
 			},
 			primitive: {
 				topology: 'line-list',
-				cullMode: 'none',
+				// cullMode: 'none',
 			},
 			depthStencil: {
 				depthWriteEnabled: false,
-				depthCompare: 'less',
+				depthCompare: 'less-equal',
 				format: 'depth24plus',
 			},
 		});
@@ -434,7 +435,7 @@ export class Game {
 
     const light = vec3.normalize(this.lightDir)
     const dirColor = vec3.create(0.5, 0.5, 0.5)
-    const ambientColor = vec3.create(0.1, 0.1, 0.1)
+    const ambientColor = vec3.create(0.7, 0.7, 0.7)
 
     const fogColor = vec4.create(0.47, 0.5, 0.67, 0.0)
     const fogDensity = new Float32Array([0.5])
@@ -523,7 +524,7 @@ export class Game {
     this.passEncoder.setBindGroup(0, mesh.wireframeBindGroup)
     this.passEncoder.setVertexBuffer(0, mesh.vertexBuffer)
     this.passEncoder.setIndexBuffer(mesh.indexBuffer, 'uint32')
-    this.passEncoder.draw(48)
+    this.passEncoder.draw(mesh.indexBuffer.size)
   }
 
   begin () {
@@ -603,13 +604,9 @@ export class TestScene extends Scene {
 
     const wall1 = this.makeMesh(makeWall(vec2.create(-4, 4), vec2.create(-4, -4), 4))
     wall1.texture = this.game.textures.get('mario_fill')
-
     const wall2 = this.makeMesh(makeWall(vec2.create(-4, -4), vec2.create(0, -12), 4))
-
     const wall3 = this.makeMesh(makeWall(vec2.create(0, -12), vec2.create(4, -4), 4))
-
     const wall4 = this.makeMesh(makeWall(vec2.create(4, -4), vec2.create(4, 4), 4))
-
     const wall5 = this.makeMesh(makeWall(vec2.create(4, 4), vec2.create(-4, 4), 4))
 
     this.meshes.push(wall1)
