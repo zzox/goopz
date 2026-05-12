@@ -1,7 +1,7 @@
 import { mat4, Mat4, vec2, Vec3, vec3, vec4 } from 'wgpu-matrix'
 import { makeWall, Mesh, meshFromObj, MeshProps, obj2, planeMesh } from './core/mesh'
 import { makeTexture } from './core/texture'
-import { defaultVert, defaultFrag } from './core/shaders'
+import { defaultVert, defaultFrag, wireframeShader } from './core/shaders'
 import { justPressed, keys } from './core/keys'
 import { Debug } from './util/debug'
 import { average, displayVec3, transRot } from './util/util'
@@ -13,6 +13,7 @@ export class Game {
   context!:GPUCanvasContext
   device!:GPUDevice
   pipeline!:GPURenderPipeline
+  wireframePipeline!:GPURenderPipeline
   renderPassDescriptor!:GPURenderPassDescriptor
   uniformBindGroup!:GPUBindGroup
   textures:Map<string, GPUTexture> = new Map()
@@ -92,7 +93,9 @@ export class Game {
     const adapter = await navigator.gpu.requestAdapter({
       featureLevel: 'compatibility',
     })
-    const device = await adapter?.requestDevice()
+    const device = await adapter?.requestDevice({
+      requiredLimits: { maxStorageBuffersInVertexStage: 2 }
+    })
 
     if (!device || !adapter) {
       throw 'No WebGPU!'
@@ -179,6 +182,58 @@ export class Game {
         format: 'depth24plus',
       },
     });
+
+		let module = device.createShaderModule({ code: wireframeShader });
+
+		const layout = device.createBindGroupLayout({
+			label: "wireframe layout",
+			entries: [
+				{
+					binding: 0,
+					visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+					buffer: {type: 'uniform'},
+				}, {
+					binding: 1,
+					visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+					buffer: {type: 'read-only-storage'},
+				}, {
+					binding: 2,
+					visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+					buffer: {type: 'read-only-storage'},
+				// },{
+				// 	binding: 3,
+				// 	visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+				// 	buffer: {type: 'read-only-storage'},
+				}
+			],
+		});
+
+		this.wireframePipeline = device.createRenderPipeline({
+			layout: device.createPipelineLayout({
+				bindGroupLayouts: [layout]
+			}),
+      // layout: 'auto',
+      label: 'wf',
+			vertex: {
+				module,
+				entryPoint: "main_vertex",
+				buffers: []
+			},
+			fragment: {
+				module,
+				entryPoint: "main_fragment",
+				targets: [{ format: presentationFormat }],
+			},
+			primitive: {
+				topology: 'line-list',
+				cullMode: 'none',
+			},
+			depthStencil: {
+				depthWriteEnabled: false,
+				depthCompare: 'less',
+				format: 'depth24plus',
+			},
+		});
 
     const depthTexture = device.createTexture({
       size: [this.canvas.width, this.canvas.height],
@@ -443,6 +498,34 @@ export class Game {
     // passEncoder.draw(36);
   }
 
+  renderMeshWireframe (mesh:Mesh, cam:Camera)  {
+    if (!this.passEncoder || !this.commandEncoder) {
+      throw 'In Game::renderMesh there missing intialized encoders'
+    }
+    const { mvp: transformationMatrix, model } = this.getTransformationMatrices(mesh, cam)
+    this.device.queue.writeBuffer(
+      mesh.uniformBuffer,
+      0,
+      transformationMatrix.buffer,
+      transformationMatrix.byteOffset,
+      transformationMatrix.byteLength
+    )
+
+    this.device.queue.writeBuffer(
+      mesh.uniformBuffer,
+      64,
+      model.buffer,
+      model.byteOffset,
+      model.byteLength
+    )
+
+    this.passEncoder.setPipeline(this.wireframePipeline)
+    this.passEncoder.setBindGroup(0, mesh.wireframeBindGroup)
+    this.passEncoder.setVertexBuffer(0, mesh.vertexBuffer)
+    this.passEncoder.setIndexBuffer(mesh.indexBuffer, 'uint32')
+    this.passEncoder.draw(48)
+  }
+
   begin () {
     this.commandEncoder = this.device.createCommandEncoder()
 
@@ -488,7 +571,7 @@ class Scene {
   }
 
   makeMesh (meshProps:MeshProps):Mesh {
-    return new Mesh(meshProps, this.game.device, this.game.pipeline)
+    return new Mesh(meshProps, this.game.device, this.game.pipeline, this.game.wireframePipeline)
   }
 }
 
@@ -594,6 +677,9 @@ export class TestScene extends Scene {
   draw() {
     this.game.begin()
     this.meshes.forEach((m) => this.game.renderMesh(m, this.cam))
+    if (Debug.on) {
+      this.meshes.forEach(m => this.game.renderMeshWireframe(m, this.cam))
+    }
     // this.renderBB(this.meshes[this.meshes.length - 1])
     this.game.end()
   }

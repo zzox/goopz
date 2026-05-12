@@ -32,6 +32,7 @@ export class Mesh {
   indexBuffer:GPUBuffer // Uint32Array
 
   uniformBindGroup:GPUBindGroup
+  wireframeBindGroup:GPUBindGroup
   uniformBuffer:GPUBuffer
 
   texture?:GPUTexture
@@ -49,7 +50,7 @@ export class Mesh {
 
   billboard:boolean = false
 
-  constructor ({ vertices, normals, uvs, colors, indices }:MeshProps, device:GPUDevice, pipeline:GPURenderPipeline) {
+  constructor ({ vertices, normals, uvs, colors, indices }:MeshProps, device:GPUDevice, pipeline:GPURenderPipeline, wireframePipeline:GPURenderPipeline) {
     const numVerts = vertices.length
 
     const vb = new Float32Array(Mesh.structureLength * indices.length)
@@ -99,6 +100,29 @@ export class Mesh {
         { binding: 2, resource: this.uniformBuffer }
       ]
     })
+
+    let vboPositions = device.createBuffer({
+      size: vb.byteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+
+    let vboIndices = device.createBuffer({
+      size: ib.byteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+
+    device.queue.writeBuffer(vboPositions, 0, vb.buffer, 0, vb.byteLength);
+    // device.queue.writeBuffer(vboColors, 0, points.colors.buffer, 0, points.colors.byteLength);
+    device.queue.writeBuffer(vboIndices, 0, ib.buffer, 0, ib.byteLength);
+
+    this.wireframeBindGroup = device.createBindGroup({
+      layout: wireframePipeline.getBindGroupLayout(0),
+      entries: [
+        {binding: 0, resource: {buffer: this.uniformBuffer}},
+        {binding: 1, resource: {buffer: vboPositions}},
+        {binding: 2, resource: {buffer: vboIndices}},
+      ],
+    });
   }
 }
 
