@@ -1,4 +1,4 @@
-export const $id = (str:string,) => document.getElementById(str)!
+export const $id = (str:string) => document.getElementById(str)!
 
 export const setAndUpdateNum = (id:string, value:number, cb:(n:number) => void) => {
   const item = $id(id) as HTMLInputElement

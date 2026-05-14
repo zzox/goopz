@@ -1,5 +1,5 @@
 import { mat4, Mat4, vec2, Vec3, vec3, vec4 } from 'wgpu-matrix'
-import { makeWall, Mesh, meshFromObj, MeshProps, cubeObj, planeMesh } from './core/mesh'
+import { makeWall, Mesh, meshFromObj, MeshProps, cubeObj, planeMesh, makeFloor } from './core/mesh'
 import { makeTexture } from './core/texture'
 import { defaultVert, defaultFrag, wireframeShader } from './core/shaders'
 import { clearJustPressed, justPressed, keys } from './core/keys'
@@ -642,12 +642,14 @@ export class TestScene extends Scene {
     const wall4 = this.makeMesh(makeWall(vec2.create(4, -4), vec2.create(4, 4), 4))
     const wall5 = this.makeMesh(makeWall(vec2.create(4, 4), vec2.create(-4, 4), 4))
     wall5.texture = this.game.textures.get('mario_fill_2')
+    const floor = this.makeMesh(makeFloor(-12, -12, 16, 16, 0))
 
     this.meshes.push(wall1)
     this.meshes.push(wall2)
     this.meshes.push(wall3)
     this.meshes.push(wall4)
     this.meshes.push(wall5)
+    this.meshes.push(floor)
 
     const mesh = this.makeMesh(planeMesh())
     mesh.pos[0] = -2 + Math.random() * 4
