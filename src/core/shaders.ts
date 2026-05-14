@@ -65,8 +65,8 @@ fn main(
 ) -> @location(0) vec4f {
   let texColor = textureSample(myTexture, mySampler, fragUV) * fragColor;
   let lightColor = saturate(light.ambientColor + max(dot(normalize(normal), light.lightDir), 0.0) * light.dirColor);
-  let color = vec4f(texColor.rgb * lightColor, texColor.a);
-  return mix(color, light.fogColor, fog(light.fogDensity, Position));
+  let color = vec4f(texColor.rgb * lightColor * texColor.a, texColor.a);
+  return mix(color, light.fogColor * texColor.a, fog(light.fogDensity, Position));
 }`
 
 export const wireframeShader = `

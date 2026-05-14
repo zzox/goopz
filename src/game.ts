@@ -110,6 +110,7 @@ export class Game {
     this.context.configure({
       device,
       format: presentationFormat,
+      alphaMode: 'premultiplied',
     })
 
     this.pipeline = this.device.createRenderPipeline({
@@ -158,6 +159,17 @@ export class Game {
         targets: [
           {
             format: presentationFormat,
+            blend: {
+              // needed for alpha value from textures
+              color: {
+                srcFactor: 'one',
+                dstFactor: 'one-minus-src-alpha'
+              },
+              alpha: {
+                srcFactor: 'one',
+                dstFactor: 'one-minus-src-alpha'
+              },
+            },
           },
         ],
       },
@@ -264,7 +276,7 @@ export class Game {
   }
 
   async loadAssets () {
-    const assets = ['assets/images/mario_fill.png']
+    const assets = ['assets/images/mario_fill.png', 'assets/images/mario_fill_2.png']
     await Promise.all(assets.map(asset => this.loadImage(asset)))
   }
 
@@ -437,7 +449,7 @@ export class Game {
     const dirColor = vec3.create(0.5, 0.5, 0.5)
     const ambientColor = vec3.create(0.7, 0.7, 0.7)
 
-    const fogColor = vec4.create(0.47, 0.5, 0.67, 0.0)
+    const fogColor = vec4.create(0.47, 0.5, 0.67, 1.0)
     const fogDensity = new Float32Array([0.5])
 
     this.device.queue.writeBuffer(
@@ -608,6 +620,7 @@ export class TestScene extends Scene {
     const wall3 = this.makeMesh(makeWall(vec2.create(0, -12), vec2.create(4, -4), 4))
     const wall4 = this.makeMesh(makeWall(vec2.create(4, -4), vec2.create(4, 4), 4))
     const wall5 = this.makeMesh(makeWall(vec2.create(4, 4), vec2.create(-4, 4), 4))
+    wall5.texture = this.game.textures.get('mario_fill_2')
 
     this.meshes.push(wall1)
     this.meshes.push(wall2)
@@ -681,4 +694,3 @@ export class TestScene extends Scene {
     this.game.end()
   }
 }
-
