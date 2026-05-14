@@ -150,10 +150,10 @@ export const planeMesh = (v1?:Vec3, v2?:Vec3, v3?:Vec3, v4?:Vec3):MeshProps => {
   const normals = [n, n, n, n]
   const uvs = [vec2.create(0,0), vec2.create(1,0), vec2.create(1,1), vec2.create(0,1)]
   const colors = Math.random() < 0.1 ? [
-    vec4.create(1.0, 1.0, 1.0, 1.0),
-    vec4.create(1.0, 1.0, 1.0, 1.0),
-    vec4.create(1.0, 1.0, 1.0, 1.0),
-    vec4.create(1.0, 1.0, 1.0, 1.0)
+    vec4.create(0.1, 0.1, 0.1, 1.0),
+    vec4.create(0.3, 0.6, 0.9, 1.0),
+    vec4.create(0.6, 0.9, 0.3, 1.0),
+    vec4.create(0.9, 0.3, 0.6, 1.0)
   ] : [
     vec4.create(1.0, 1.0, 1.0, 1.0),
     vec4.create(1.0, 1.0, 1.0, 1.0),
