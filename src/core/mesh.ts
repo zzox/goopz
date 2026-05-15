@@ -35,6 +35,8 @@ export class Mesh {
   wireframeBindGroup:GPUBindGroup
   uniformBuffer:GPUBuffer
 
+  numVerts:number
+
   texture?:GPUTexture
 
   // vertices:Vec4[];
@@ -51,7 +53,7 @@ export class Mesh {
   billboard:boolean = false
 
   constructor ({ vertices, normals, uvs, colors, indices }:MeshProps, device:GPUDevice, pipeline:GPURenderPipeline, wireframePipeline:GPURenderPipeline) {
-    const numVerts = vertices.length
+    this.numVerts = vertices.length
 
     const vb = new Float32Array(Mesh.structureLength * indices.length)
     const ib = new Uint32Array(indices)
@@ -65,7 +67,7 @@ export class Mesh {
     // })
 
     // this works with the index buffer
-    for (let i = 0; i < numVerts; i++) {
+    for (let i = 0; i < this.numVerts; i++) {
       vb.set(vertices[i], (i * Mesh.structureLength) + 0)
       vb.set(colors[i], (i * Mesh.structureLength) + 4)
       vb.set(uvs[i], (i * Mesh.structureLength) + 8)
@@ -122,7 +124,37 @@ export class Mesh {
         {binding: 1, resource: {buffer: vboPositions}},
         {binding: 2, resource: {buffer: vboIndices}},
       ],
-    });
+    })
+  }
+
+  setUv (tile:number, width:number, height:number, device:GPUDevice) {
+    const tex = this.texture!
+
+    // const tw = Math.floor(tex.width / width)
+    // const th = Math.floor(tex.height / height)
+
+    const numRows = Math.floor(tex.width / width)
+
+    const x = (tile % numRows) * width
+    const y = Math.floor(tile / numRows) * height
+
+    const items = [
+      vec2.create(x / tex.width, (y + height) / tex.height),
+      vec2.create((x + width) / tex.width, (y + height) / tex.height),
+      vec2.create((x + width) / tex.width, y / tex.height),
+      vec2.create(x / tex.width, y / tex.height)
+    ]
+
+    for (let i = 0; i < this.numVerts; i++) {
+      // write the new uvs
+      device.queue.writeBuffer(
+        this.vertexBuffer,
+        ((i * Mesh.structureLength) + 8) * 4,
+        items[i].buffer,
+        items[i].byteOffset,
+        items[i].byteLength
+      )
+    }
   }
 }
 

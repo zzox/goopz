@@ -20,17 +20,17 @@ export const makeTexture = (device:GPUDevice, size:number = 64):GPUTexture => {
 }
 
 export const checkerboard = (size = 64, gridSize = 8):Uint8ClampedArray =>  {
-    const data = new Uint8ClampedArray(size * size * 4)
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const on = ((Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 2) === 0
-        const i = (y * size + x) * 4
-        const c = on ? 220 : 60
-        data[i] = c
-        data[i + 1] = c
-        data[i + 2] = c
-        data[i + 3] = 255
-      }
+  const data = new Uint8ClampedArray(size * size * 4)
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const on = ((Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 2) === 0
+      const i = (y * size + x) * 4
+      const c = on ? 220 : 60
+      data[i] = c
+      data[i + 1] = c
+      data[i + 2] = c
+      data[i + 3] = 255
     }
-    return data;
+  }
+  return data;
 }

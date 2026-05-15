@@ -2,7 +2,7 @@ import { mat4, Mat4, vec2, Vec3, vec3, vec4 } from 'wgpu-matrix'
 import { makeWall, Mesh, meshFromObj, MeshProps, obj2, planeMesh } from './core/mesh'
 import { makeTexture } from './core/texture'
 import { defaultVert, defaultFrag, wireframeShader } from './core/shaders'
-import { justPressed, keys } from './core/keys'
+import { clearJustPressed, justPressed, keys } from './core/keys'
 import { Debug } from './util/debug'
 import { average, displayVec3, transRot } from './util/util'
 import { Camera } from './core/camera'
@@ -617,6 +617,7 @@ export class TestScene extends Scene {
     const wall1 = this.makeMesh(makeWall(vec2.create(-4, 4), vec2.create(-4, -4), 4))
     wall1.texture = this.game.textures.get('mario_fill')
     const wall2 = this.makeMesh(makeWall(vec2.create(-4, -4), vec2.create(0, -12), 4))
+    wall2.texture = makeTexture(this.game.device)
     const wall3 = this.makeMesh(makeWall(vec2.create(0, -12), vec2.create(4, -4), 4))
     const wall4 = this.makeMesh(makeWall(vec2.create(4, -4), vec2.create(4, 4), 4))
     const wall5 = this.makeMesh(makeWall(vec2.create(4, 4), vec2.create(-4, 4), 4))
@@ -678,10 +679,16 @@ export class TestScene extends Scene {
       this.cam.pos[1] -= 0.1
     }
 
+    if (justPressed.get('m')) {
+      this.meshes[4].setUv(Math.floor(Math.random() * 16), 16, 16, this.game.device)
+    }
+
     this.meshes[2].rot[1] += 0.03
     this.meshes[2].rot[0] += 0.03
 
     this.meshes[1].scale[1] *= 1.001
+
+    clearJustPressed()
   }
 
   draw() {
