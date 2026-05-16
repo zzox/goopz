@@ -6,6 +6,7 @@ import { clearJustPressed, justPressed, keys } from './core/keys'
 import { Debug } from './util/debug'
 import { average, displayVec3, transRot } from './util/util'
 import { Camera } from './core/camera'
+import { getAnim } from './data/anim-data'
 
 export class Game {
   canvas:HTMLCanvasElement
@@ -277,7 +278,7 @@ export class Game {
   }
 
   async loadAssets () {
-    const assets = ['assets/images/mario_fill.png', 'assets/images/mario_fill_2.png', 'assets/obj/diablo-3-pose.obj']
+    const assets = ['assets/images/mario_fill.png', 'assets/images/mario_fill_2.png', 'assets/images/2dtiles.png', 'assets/obj/diablo-3-pose.obj']
 
     const images = assets.filter(asset => asset.slice(-4) === '.png').map(asset => this.loadImage(asset))
     const blobs = assets.filter(asset => asset.slice(-4) === '.obj').map(asset => this.loadBlob(asset))
@@ -298,7 +299,7 @@ export class Game {
         GPUTextureUsage.RENDER_ATTACHMENT,
     });
     this.device.queue.copyExternalImageToTexture(
-      { source: imageBitmap, flipY: true },
+      { source: imageBitmap/*, flipY: false */ },
       { texture: texture },
       [imageBitmap.width, imageBitmap.height]
     )
@@ -606,6 +607,8 @@ class Scene {
 export class TestScene extends Scene {
   meshes:Mesh[] = []
   diablo!:Mesh
+  animGuy!:Mesh
+  animGuyFrames:number = 0
 
   create () {
     super.create()
@@ -627,7 +630,6 @@ export class TestScene extends Scene {
     // this.meshes[2].anchor[0] = 6
     this.meshes[2].anchor[1] = 1
     // this.meshes[2].anchor[2] = 6
-
     this.meshes[1].anchor[1] = 1
 
     const wall1 = this.makeMesh(makeWall(vec2.create(-4, 4), vec2.create(-4, -4), 4))
@@ -658,7 +660,13 @@ export class TestScene extends Scene {
     this.diablo.anchor[1] = 1
     this.diablo.scale.set([5, 5, 5])
 
-    this.meshes.push(this.diablo)
+    // this.meshes.push(this.diablo)
+
+    this.animGuy = this.makeMesh(planeMesh())
+    this.animGuy.pos.set([0, 1, 1])
+    this.animGuy.texture = this.game.textures.get('2dtiles')
+    // this.animGuy.texture = makeTexture(this.game.device)
+    this.meshes.push(this.animGuy)
 
     this.meshes.push(mesh)
     mesh.billboard = true
@@ -701,9 +709,25 @@ export class TestScene extends Scene {
       this.cam.pos[1] -= 0.1
     }
 
+    if (keys.get('j')) {
+      this.animGuy.pos[0] -= 0.1
+    }
+
+    if (keys.get('l')) {
+      this.animGuy.pos[0] += 0.1
+    }
+
+    if (keys.get('i')) {
+      this.animGuy.pos[2] -= 0.1
+    }
+
+    if (keys.get('k')) {
+      this.animGuy.pos[2] += 0.1
+    }
+
     if (justPressed.get('m')) {
       this.meshes[4].setUv(Math.floor(Math.random() * 16), 16, 16, this.game.device)
-      this.meshes[this.meshes.length - 1].vertexBuffer.mapAsync(GPUBufferUsage.MAP_READ).then(v => console.log(v))
+      // this.meshes[this.meshes.length - 1].vertexBuffer.mapAsync(GPUBufferUsage.MAP_READ).then(v => console.log(v))
     }
 
     this.meshes[2].rot[1] += 0.03
@@ -715,6 +739,9 @@ export class TestScene extends Scene {
     this.diablo.scale[1] *= 1.0000001
     this.diablo.scale[2] *= 1.0000001
     this.diablo.rot[1] += 0.03
+
+    this.animGuyFrames++
+    this.animGuy.setUv(64 + getAnim('moving', this.animGuyFrames), 16, 16, this.game.device)
 
     clearJustPressed()
   }

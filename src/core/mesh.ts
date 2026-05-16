@@ -178,7 +178,7 @@ export const planeMesh = (v1?:Vec3, v2?:Vec3, v3?:Vec3, v4?:Vec3):MeshProps => {
     vec4.create(v3[0], v3[1], v3[2], 1), // top-right
     vec4.create(v4[0], v4[1], v4[2], 1), // top-left
   ]
-  const uvs = [vec2.create(0,0), vec2.create(1,0), vec2.create(1,1), vec2.create(0,1)]
+  const uvs = [vec2.create(0,1), vec2.create(1,1), vec2.create(1,0), vec2.create(0,0)]
   const colors = Math.random() < 0.1 ? [
     vec4.create(0.1, 0.1, 0.1, 1.0),
     vec4.create(0.3, 0.6, 0.9, 1.0),
