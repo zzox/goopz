@@ -9,18 +9,25 @@ const fixed:HTMLDivElement = $id('canvas-debug') as HTMLDivElement
 
 const game = new Game(canvas, TestScene, fixed)
 
-// listeners, TODO: start with intialization
-$id('light-x').onchange = (event) => {
-  const val = event.target!.value
-  game.lightDir[0] = val
+
+const setAndUpdateNum = (id:string, value:number, cb:(n:number) => void) => {
+  const item = $id(id) as HTMLInputElement
+  if (!item) {
+    console.warn(`no item with id ${id} found`)
+    return
+  }
+
+  item.onchange = (event) => {
+    // @ts-ignore
+    const val = parseFloat(event.target!.value)
+    if (!isNaN(val)) {
+      cb(val)
+    }
+  }
+
+  item.value = value + ''
 }
 
-$id('light-y').onchange = (event) => {
-  const val = event.target!.value
-  game.lightDir[1] = val
-}
-
-$id('light-z').onchange = (event) => {
-  const val = event.target!.value
-  game.lightDir[2] = val
-}
+setAndUpdateNum('light-x', game.lightDir[0], (val) => game.lightDir[0] = val)
+setAndUpdateNum('light-y', game.lightDir[1], (val) => game.lightDir[1] = val)
+setAndUpdateNum('light-z', game.lightDir[2], (val) => game.lightDir[2] = val)
