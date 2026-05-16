@@ -1,5 +1,5 @@
 import { mat4, Mat4, vec2, Vec3, vec3, vec4 } from 'wgpu-matrix'
-import { makeWall, Mesh, meshFromObj, MeshProps, obj2, planeMesh } from './core/mesh'
+import { makeWall, Mesh, meshFromObj, MeshProps, cubeObj, planeMesh } from './core/mesh'
 import { makeTexture } from './core/texture'
 import { defaultVert, defaultFrag, wireframeShader } from './core/shaders'
 import { clearJustPressed, justPressed, keys } from './core/keys'
@@ -611,7 +611,7 @@ export class TestScene extends Scene {
     super.create()
 
     for (let i = 0; i < 3; i++) {
-      const mesh = this.makeMesh(meshFromObj(obj2))
+      const mesh = this.makeMesh(meshFromObj(cubeObj))
       mesh.pos[0] = -2 + Math.random() * 4
       mesh.pos[1] = -2 + Math.random() * 4
       mesh.pos[2] = -2 + Math.random() * 4
