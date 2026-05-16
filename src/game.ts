@@ -33,7 +33,7 @@ export class Game {
 
   currentScene!:Scene
 
-  lightDir:Vec3 = vec3.create(0, 0, 0)
+  lightDir:Vec3 = vec3.create(1, 1, 1)
 
   constructor (canvas:HTMLCanvasElement, InitialScene:typeof Scene, debugDiv?:HTMLDivElement) {
     this.canvas = canvas
@@ -308,7 +308,7 @@ export class Game {
     const name = splt[splt.length - 1].split('.')[0]
 
     if (this.textures.get(name)) {
-      throw 'Cant have named texture'
+      throw `texture already named ${name}`
     }
 
     this.textures.set(name, texture)
@@ -652,9 +652,9 @@ export class TestScene extends Scene {
     mesh.pos[1] = -2 + Math.random() * 4
     mesh.pos[2] = -2 + Math.random() * 4
 
-    mesh.rot[0] = Math.random() * Math.PI
-    mesh.rot[1] = Math.random() * Math.PI
-    mesh.rot[2] = Math.random() * Math.PI
+    // mesh.rot[0] = Math.random() * Math.PI
+    // mesh.rot[1] = Math.random() * Math.PI
+    // mesh.rot[2] = Math.random() * Math.PI
 
     this.diablo = this.makeMesh(meshFromObj(this.game.objs.get('diablo-3-pose')!))
     this.diablo.anchor[1] = 1
@@ -728,6 +728,12 @@ export class TestScene extends Scene {
     if (justPressed.get('m')) {
       this.meshes[4].setUv(Math.floor(Math.random() * 16), 16, 16, this.game.device)
       // this.meshes[this.meshes.length - 1].vertexBuffer.mapAsync(GPUBufferUsage.MAP_READ).then(v => console.log(v))
+    }
+
+    // works if the x or y light values arent 0. z doesn't matter?
+    if (justPressed.get('u')) {
+      this.animGuy.setNormals(this.game.lightDir, this.game.device)
+      this.meshes.find(m => m.billboard)!.setNormals(this.game.lightDir, this.game.device)
     }
 
     this.meshes[2].rot[1] += 0.03

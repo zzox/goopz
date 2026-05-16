@@ -156,6 +156,21 @@ export class Mesh {
       )
     }
   }
+
+  setNormals (vec3:Vec3, device:GPUDevice) {
+    const item = vec4.fromValues(vec3[0], vec3[1], vec3[2], 1.0)
+
+    for (let i = 0; i < this.numVerts; i++) {
+      // write the new uvs
+      device.queue.writeBuffer(
+        this.vertexBuffer,
+        ((i * Mesh.structureLength) + 10) * 4,
+        item.buffer,
+        item.byteOffset,
+        item.byteLength
+      )
+    }
+  }
 }
 
 export const makeWall = (p1:Vec2, p2:Vec2, height:number) =>
