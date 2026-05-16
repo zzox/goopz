@@ -17,6 +17,7 @@ export class Game {
   renderPassDescriptor!:GPURenderPassDescriptor
   uniformBindGroup!:GPUBindGroup
   textures:Map<string, GPUTexture> = new Map()
+  objs:Map<string, string> = new Map()
 
   passEncoder?:GPURenderPassEncoder
   commandEncoder?:GPUCommandEncoder
@@ -276,8 +277,12 @@ export class Game {
   }
 
   async loadAssets () {
-    const assets = ['assets/images/mario_fill.png', 'assets/images/mario_fill_2.png']
-    await Promise.all(assets.map(asset => this.loadImage(asset)))
+    const assets = ['assets/images/mario_fill.png', 'assets/images/mario_fill_2.png', 'assets/obj/diablo-3-pose.obj']
+
+    const images = assets.filter(asset => asset.slice(-4) === '.png').map(asset => this.loadImage(asset))
+    const blobs = assets.filter(asset => asset.slice(-4) === '.obj').map(asset => this.loadBlob(asset))
+
+    await Promise.all([...blobs, ...images])
   }
 
   async loadImage (str:string) {
@@ -306,6 +311,16 @@ export class Game {
     }
 
     this.textures.set(name, texture)
+  }
+
+  async loadBlob (str:string) {
+    const response = await fetch(str)
+    const res = await response.text()
+
+    const splt = str.split('/')
+    const name = splt[splt.length - 1].split('.')[0]
+
+    this.objs.set(name, res)
   }
 
   next = (time:number) => {
@@ -590,6 +605,7 @@ class Scene {
 
 export class TestScene extends Scene {
   meshes:Mesh[] = []
+  diablo!:Mesh
 
   create () {
     super.create()
@@ -637,6 +653,12 @@ export class TestScene extends Scene {
     mesh.rot[0] = Math.random() * Math.PI
     mesh.rot[1] = Math.random() * Math.PI
     mesh.rot[2] = Math.random() * Math.PI
+
+    this.diablo = this.makeMesh(meshFromObj(this.game.objs.get('diablo-3-pose')!))
+    this.diablo.anchor[1] = 1
+    this.diablo.scale.set([5, 5, 5])
+
+    this.meshes.push(this.diablo)
 
     this.meshes.push(mesh)
     mesh.billboard = true
@@ -688,6 +710,11 @@ export class TestScene extends Scene {
     this.meshes[2].rot[0] += 0.03
 
     this.meshes[1].scale[1] *= 1.001
+
+    this.diablo.scale[0] *= 1.0000001
+    this.diablo.scale[1] *= 1.0000001
+    this.diablo.scale[2] *= 1.0000001
+    this.diablo.rot[1] += 0.03
 
     clearJustPressed()
   }
