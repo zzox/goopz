@@ -178,8 +178,6 @@ export const planeMesh = (v1?:Vec3, v2?:Vec3, v3?:Vec3, v4?:Vec3):MeshProps => {
     vec4.create(v3[0], v3[1], v3[2], 1), // top-right
     vec4.create(v4[0], v4[1], v4[2], 1), // top-left
   ]
-  const n = vec4.create(0, 0, 1, 1)
-  const normals = [n, n, n, n]
   const uvs = [vec2.create(0,0), vec2.create(1,0), vec2.create(1,1), vec2.create(0,1)]
   const colors = Math.random() < 0.1 ? [
     vec4.create(0.1, 0.1, 0.1, 1.0),
@@ -193,6 +191,35 @@ export const planeMesh = (v1?:Vec3, v2?:Vec3, v3?:Vec3, v4?:Vec3):MeshProps => {
     vec4.create(1.0, 1.0, 1.0, 1.0)
   ]
   const indices = [0,1,2, 0,2,3]
+
+  // recalc normals
+  // from here: https://iquilezles.org/articles/normals/
+  const n = vec3.create(0, 0, 0)
+  const normalsPre = [n, n, n, n]
+  for (let i = 0; i < indices.length / 3; i++) {
+    const ii = i * 3
+
+    // backwards because of how i import?
+    const i3 = indices[ii]
+    const i2 = indices[ii + 1]
+    const i1 = indices[ii + 2]
+
+    const v1 = vertices[i1]
+    const v2 = vertices[i2]
+    const v3 = vertices[i3]
+
+    const e1 = vec3.sub(v1, v2)
+    const e2 = vec3.sub(v3, v2)
+
+    const normal = vec3.cross(e1, e2)
+
+    normalsPre[i1] = vec3.add(normalsPre[i1], normal)
+    normalsPre[i2] = vec3.add(normalsPre[i2], normal)
+    normalsPre[i3] = vec3.add(normalsPre[i3], normal)
+  }
+  const normals = normalsPre.map(n => vec3.normalize(n))
+    .map(n => vec4.fromValues(n[0], n[1], n[2], 1))
+
   return { vertices, normals, uvs, colors, indices }
 }
 

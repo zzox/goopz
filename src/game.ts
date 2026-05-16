@@ -31,7 +31,7 @@ export class Game {
 
   currentScene!:Scene
 
-  lightDir:Vec3 = vec3.create(0, 0, 1)
+  lightDir:Vec3 = vec3.create(0, 0, 0)
 
   constructor (canvas:HTMLCanvasElement, InitialScene:typeof Scene, debugDiv?:HTMLDivElement) {
     this.canvas = canvas
@@ -446,11 +446,11 @@ export class Game {
     })
 
     const light = vec3.normalize(this.lightDir)
-    const dirColor = vec3.create(0.5, 0.5, 0.5)
+    const dirColor = vec3.create(0.8, 0.8, 0.8)
     const ambientColor = vec3.create(0.7, 0.7, 0.7)
 
-    const fogColor = vec4.create(0.47, 0.5, 0.67, 1.0)
-    const fogDensity = new Float32Array([0.5])
+    const fogColor = vec4.create(0.3, 0.3, 0.3, 1.0)
+    const fogDensity = new Float32Array([0.0])
 
     this.device.queue.writeBuffer(
       lightUniformBuffer,
@@ -681,6 +681,7 @@ export class TestScene extends Scene {
 
     if (justPressed.get('m')) {
       this.meshes[4].setUv(Math.floor(Math.random() * 16), 16, 16, this.game.device)
+      this.meshes[this.meshes.length - 1].vertexBuffer.mapAsync(GPUBufferUsage.MAP_READ).then(v => console.log(v))
     }
 
     this.meshes[2].rot[1] += 0.03
