@@ -5,7 +5,7 @@ import { defaultVert, defaultFrag, wireframeShader } from './core/shaders'
 import { clearJustPressed, justPressed, keys } from './core/keys'
 import { Debug } from './util/debug'
 import { average, displayVec3, transRot } from './util/util'
-import { Camera } from './core/camera'
+import { WasdCamera, Camera, StadiumCamera } from './core/camera'
 import { getAnim } from './data/anim-data'
 
 export class Game {
@@ -609,9 +609,11 @@ export class TestScene extends Scene {
   diablo!:Mesh
   animGuy!:Mesh
   animGuyFrames:number = 0
+  wasdCam:boolean = true
 
   create () {
     super.create()
+    this.cam = new WasdCamera()
 
     for (let i = 0; i < 3; i++) {
       const mesh = this.makeMesh(meshFromObj(cubeObj))
@@ -674,39 +676,73 @@ export class TestScene extends Scene {
 
   update() {
     // move to parent?
+    // ugly
     this.cam.update()
 
-    if (keys.get('w')) {
-      // this.cam.pos[2] -= 0.1
-      this.cam.moveForward(true)
+    if (this.wasdCam) {
+      const cam = this.cam as WasdCamera
+      if (keys.get('w')) {
+        // cam.pos[2] -= 0.1
+        cam.moveForward(true)
+      }
+
+      if (keys.get('s')) {
+        cam.moveForward(false)
+      }
+
+      if (keys.get('d')) {
+        cam.moveRight(true)
+      }
+
+      if (keys.get('a')) {
+        cam.moveRight(false)
+      }
+
+      if (keys.get('q')) {
+        cam.yaw += 0.03
+      }
+
+      if (keys.get('e')) {
+        cam.yaw -= 0.03
+      }
+
+      if (keys.get('z')) {
+        cam.pos[1] += 0.1
+      }
+
+      if (keys.get('c')) {
+        cam.pos[1] -= 0.1
+      }
+    } else {
+      const cam = this.cam as StadiumCamera
+      if (keys.get('a')) {
+        // cam.pos[2] -= 0.1
+        cam.angle--
+      }
+
+      if (keys.get('d')) {
+        cam.angle++
+      }
+
+      if (keys.get('w')) {
+        // cam.pos[2] -= 0.1
+        cam.distance -= 0.1
+      }
+
+      if (keys.get('s')) {
+        cam.distance += 0.1
+      }
+
+      cam.at = vec3.copy(this.animGuy.pos)
     }
 
-    if (keys.get('s')) {
-      this.cam.moveForward(false)
-    }
-
-    if (keys.get('d')) {
-      this.cam.moveRight(true)
-    }
-
-    if (keys.get('a')) {
-      this.cam.moveRight(false)
-    }
-
-    if (keys.get('q')) {
-      this.cam.yaw += 0.03
-    }
-
-    if (keys.get('e')) {
-      this.cam.yaw -= 0.03
-    }
-
-    if (keys.get('z')) {
-      this.cam.pos[1] += 0.1
-    }
-
-    if (keys.get('c')) {
-      this.cam.pos[1] -= 0.1
+    if (justPressed.get('x')) {
+      this.wasdCam = !this.wasdCam
+      if (this.wasdCam) {
+        this.cam = new WasdCamera()
+      } else {
+        this.cam = new StadiumCamera()
+      }
     }
 
     if (keys.get('j')) {

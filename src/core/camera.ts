@@ -1,16 +1,26 @@
-import { Mat4, mat4, vec3, Vec3 } from 'wgpu-matrix'
+import { Mat4, mat4, Vec2, vec2, vec3, Vec3 } from 'wgpu-matrix'
 import { clamp, mod, transRot } from '../util/util'
 
 // lots from https://webgpu.github.io/webgpu-samples/?sample=cameras#camera.ts
 
-// wasd camera
 export class Camera {
+  // move these out?
   yaw:number = 0
-
   pitch:number = 0
 
-  // cameras position
-  pos:Vec3
+  pos:Vec3 = vec3.create(0, 0, 0)
+
+  getView ():Mat4 {
+    throw 'Camera::getView not implemented'
+  }
+
+  update () {
+    throw 'Camera::update not implemented'
+  }
+}
+
+// wasd camera
+export class WasdCamera extends Camera {
   // cameras rotation, doesn't matter when looking at something
   // rot:Vec3
   // cameras target, doesn't matter when free looking
@@ -19,6 +29,8 @@ export class Camera {
   back:Vec3
 
   constructor () {
+    super()
+
     this.pos = vec3.create(0, 2, 4)
     // this.rot = vec3.create(0, 0, 0)
     const target = vec3.create(0, 2, 0)
@@ -73,4 +85,38 @@ export class Camera {
     this.yaw = Math.atan2(dir[0], dir[2]);
     this.pitch = -Math.asin(dir[1]);
   }
+}
+
+export class StadiumCamera extends Camera {
+  at:Vec3 = vec3.create() 
+  up:Vec3 = vec3.create(0, 1, 0)
+
+  distance:number = 20
+  angle:number = 0
+
+  constructor() {
+    super()
+  }
+
+  getView(): Mat4 {
+    return mat4.lookAt(this.pos, this.at, this.up)
+  }
+
+  update() {
+    // CAMERA STUFF
+    const vel = velocityFromAngle(this.angle, this.distance)
+    this.pos[0] = this.at[0] + vel[0]
+    this.pos[1] = this.sixtyDeg(this.distance)
+    this.pos[2] = this.at[2] + vel[1]
+  }
+
+  sixtyDeg = (val:number):number => val / Math.sqrt(3)
+}
+
+const toRadians = (value:number):number => value * (Math.PI / 180)
+
+// from: https://github.com/HaxeFlixel/flixel/blob/dev/flixel/math/FlxVelocity.hx
+const velocityFromAngle = (angle:number, velocity:number):Vec2 => {
+  const a = toRadians(angle)
+  return vec2.create(Math.cos(a) * velocity, Math.sin(a) * velocity)
 }
