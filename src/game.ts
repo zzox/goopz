@@ -278,7 +278,13 @@ export class Game {
   }
 
   async loadAssets () {
-    const assets = ['assets/images/mario_fill.png', 'assets/images/mario_fill_2.png', 'assets/images/2dtiles.png', 'assets/obj/diablo-3-pose.obj']
+    const assets = [
+      'assets/images/mario_fill.png',
+      'assets/images/mario_fill_2.png',
+      'assets/images/2dtiles.png',
+      'assets/obj/diablo-3-pose.obj',
+      'assets/images/horror-metal-14.png'
+    ]
 
     const images = assets.filter(asset => asset.slice(-4) === '.png').map(asset => this.loadImage(asset))
     const blobs = assets.filter(asset => asset.slice(-4) === '.obj').map(asset => this.loadBlob(asset))
@@ -643,6 +649,7 @@ export class TestScene extends Scene {
     const wall5 = this.makeMesh(makeWall(vec2.create(4, 4), vec2.create(-4, 4), 4))
     wall5.texture = this.game.textures.get('mario_fill_2')
     const floor = this.makeMesh(makeFloor(-12, -12, 16, 16, 0))
+    floor.texture = this.game.textures.get('horror-metal-14')
 
     this.meshes.push(wall1)
     this.meshes.push(wall2)
@@ -664,7 +671,7 @@ export class TestScene extends Scene {
     this.diablo.anchor[1] = 1
     this.diablo.scale.set([5, 5, 5])
 
-    // this.meshes.push(this.diablo)
+    this.meshes.push(this.diablo)
 
     this.animGuy = this.makeMesh(planeMesh())
     this.animGuy.pos.set([0, 1, 1])
