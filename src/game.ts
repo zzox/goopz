@@ -659,9 +659,9 @@ export class TestScene extends Scene {
     this.meshes.push(floor)
 
     const mesh = this.makeMesh(planeMesh())
-    mesh.pos[0] = -2 + Math.random() * 4
-    mesh.pos[1] = -2 + Math.random() * 4
-    mesh.pos[2] = -2 + Math.random() * 4
+    mesh.pos[0] = -1
+    mesh.pos[1] = 2
+    mesh.pos[2] = 1
 
     // mesh.rot[0] = Math.random() * Math.PI
     // mesh.rot[1] = Math.random() * Math.PI
@@ -676,10 +676,10 @@ export class TestScene extends Scene {
     this.animGuy = this.makeMesh(planeMesh())
     this.animGuy.pos.set([0, 1, 1])
     this.animGuy.texture = this.game.textures.get('2dtiles')
+    this.animGuy.billboard = true
     // this.animGuy.texture = makeTexture(this.game.device)
-    this.meshes.push(this.animGuy)
-
     this.meshes.push(mesh)
+    this.meshes.push(this.animGuy)
     mesh.billboard = true
   }
 
