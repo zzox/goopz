@@ -613,6 +613,7 @@ class Scene {
 export class TestScene extends Scene {
   meshes:Mesh[] = []
   diablo!:Mesh
+  planeMesh!:Mesh
   animGuy!:Mesh
   animGuyFrames:number = 0
   wasdCam:boolean = true
@@ -658,10 +659,10 @@ export class TestScene extends Scene {
     this.meshes.push(wall5)
     this.meshes.push(floor)
 
-    const mesh = this.makeMesh(planeMesh())
-    mesh.pos[0] = -1
-    mesh.pos[1] = 2
-    mesh.pos[2] = 1
+    this.planeMesh = this.makeMesh(planeMesh())
+    this.planeMesh.pos[0] = -1
+    this.planeMesh.pos[1] = 2
+    this.planeMesh.pos[2] = 1
 
     // mesh.rot[0] = Math.random() * Math.PI
     // mesh.rot[1] = Math.random() * Math.PI
@@ -678,9 +679,9 @@ export class TestScene extends Scene {
     this.animGuy.texture = this.game.textures.get('2dtiles')
     this.animGuy.billboard = true
     // this.animGuy.texture = makeTexture(this.game.device)
-    this.meshes.push(mesh)
+    this.meshes.push(this.planeMesh)
     this.meshes.push(this.animGuy)
-    mesh.billboard = true
+    this.planeMesh.billboard = true
   }
 
   update() {
@@ -790,6 +791,8 @@ export class TestScene extends Scene {
     this.diablo.scale[1] *= 1.0000001
     this.diablo.scale[2] *= 1.0000001
     // this.diablo.rot[1] += 0.03
+
+    // console.log(this.meshes.indexOf(this.animGuy), this.meshes.indexOf(this.planeMesh), vec3.dist(this.planeMesh.pos, this.cam.pos), vec3.dist(this.animGuy.pos, this.cam.pos))
 
     this.animGuyFrames++
     this.animGuy.setUv(64 + getAnim('moving', this.animGuyFrames), 16, 16, this.game.device)
