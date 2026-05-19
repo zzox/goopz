@@ -781,15 +781,15 @@ export class TestScene extends Scene {
       this.meshes.find(m => m.billboard)!.setNormals(this.game.lightDir, this.game.device)
     }
 
-    this.meshes[2].rot[1] += 0.03
-    this.meshes[2].rot[0] += 0.03
+    // this.meshes[2].rot[1] += 0.03
+    // this.meshes[2].rot[0] += 0.03
 
-    this.meshes[1].scale[1] *= 1.001
+    // this.meshes[1].scale[1] *= 1.001
 
     this.diablo.scale[0] *= 1.0000001
     this.diablo.scale[1] *= 1.0000001
     this.diablo.scale[2] *= 1.0000001
-    this.diablo.rot[1] += 0.03
+    // this.diablo.rot[1] += 0.03
 
     this.animGuyFrames++
     this.animGuy.setUv(64 + getAnim('moving', this.animGuyFrames), 16, 16, this.game.device)
@@ -799,7 +799,13 @@ export class TestScene extends Scene {
 
   draw() {
     this.game.begin()
-    this.meshes.forEach((m) => this.game.renderMesh(m, this.cam))
+
+    // sort meshes by distance and render the billboards second so they cannot overlap on the alphas
+    this.meshes.sort((a, b) => {
+      return vec3.dist(b.pos, this.cam.pos) - vec3.dist(a.pos, this.cam.pos)
+    })
+    this.meshes.filter(m => !m.billboard).forEach((m) => this.game.renderMesh(m, this.cam))
+    this.meshes.filter(m => m.billboard).forEach((m) => this.game.renderMesh(m, this.cam))
     if (Debug.on) {
       this.meshes.forEach(m => this.game.renderMeshWireframe(m, this.cam))
     }
