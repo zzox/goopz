@@ -3,11 +3,12 @@ import { Camera } from '../core/camera'
 import { Game } from '../game'
 
 export class Scene {
-  game!:Game
+  game:Game
   paused:boolean = false
-  cam!:Camera
+  cam:Camera
 
-  create () {
+  constructor (game:Game) {
+    this.game = game
     this.cam = new Camera()
   }
 

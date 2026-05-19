@@ -44,9 +44,7 @@ export class Game {
         // called once game is established
         // this.init()
 
-        const scene = new InitialScene()
-        scene.game = this
-        scene.create()
+        const scene = new InitialScene(this)
         this.currentScene = scene
 
         // kick off update loop

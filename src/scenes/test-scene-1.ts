@@ -6,17 +6,18 @@ import { Debug } from '../util/debug'
 import { WasdCamera, StadiumCamera } from '../core/camera'
 import { getAnim } from '../data/anim-data'
 import { Scene } from '../core/scene'
+import { Game } from '../game'
 
 export class TestScene1 extends Scene {
   meshes:Mesh[] = []
-  diablo!:Mesh
-  planeMesh!:Mesh
-  animGuy!:Mesh
+  diablo:Mesh
+  planeMesh:Mesh
+  animGuy:Mesh
   animGuyFrames:number = 0
   wasdCam:boolean = true
 
-  create () {
-    super.create()
+  constructor (game:Game) {
+    super(game)
     this.cam = new WasdCamera()
 
     for (let i = 0; i < 3; i++) {
