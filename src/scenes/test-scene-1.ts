@@ -1,5 +1,6 @@
 import { vec2, vec3 } from 'wgpu-matrix'
-import { makeWall, Mesh, meshFromObj, MeshProps, cubeObj, planeMesh, makeFloor } from '../core/mesh'
+import { Mesh } from '../core/mesh'
+import { makeWall, meshFromObj, cubeObj, planeMesh, makeFloor } from '../util/mesh-util'
 import { makeTexture } from '../core/texture'
 import { clearJustPressed, justPressed, keys } from '../core/keys'
 import { Debug } from '../util/debug'

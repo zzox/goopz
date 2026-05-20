@@ -107,6 +107,7 @@ export class StadiumCamera extends Camera {
     const vel = velocityFromAngle(this.angle, this.distance)
     this.pos[0] = this.at[0] + vel[0]
     this.pos[1] = this.sixtyDeg(this.distance)
+    this.pos[1] = this.distance // 45 deg
     this.pos[2] = this.at[2] + vel[1]
   }
 
