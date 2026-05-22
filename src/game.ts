@@ -1,7 +1,7 @@
 import { mat4, Vec3, vec3, vec4 } from 'wgpu-matrix'
 import { Mesh } from './core/mesh'
 import { makeTexture } from './core/texture'
-import { defaultVert, defaultFrag, wireframeShader } from './core/shaders'
+import { defaultVert, defaultFrag, wireframeShader, shadowShader } from './core/shaders'
 import { justPressed, keys } from './core/keys'
 import { Debug } from './util/debug'
 import { average, displayVec3, transRot } from './util/util'
@@ -19,6 +19,14 @@ export class Game {
   uniformBindGroup!:GPUBindGroup
   textures:Map<string, GPUTexture> = new Map()
   objs:Map<string, string> = new Map()
+
+  shadowBindGroup!:GPUBindGroup
+  shadowDepthView!:GPUTextureView
+  shadowDepthSampler!:GPUSampler
+  shadowPassDescriptor!:GPURenderPassDescriptor
+  shadowPipeline!:GPURenderPipeline
+  shadowPass?:GPURenderPassEncoder
+  shadowBindGroupLayout!:GPUBindGroupLayout
 
   passEncoder?:GPURenderPassEncoder
   commandEncoder?:GPUCommandEncoder
@@ -196,7 +204,114 @@ export class Game {
       },
     });
 
-		let module = device.createShaderModule({ code: wireframeShader });
+    const shadowDepthTexture = this.device.createTexture({
+      label: 'shadow depth texture',
+      size: [1024, 1024],
+      // format: 'depth24plus',
+      format: 'depth32float',
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+
+    // const shadowDepthTexture = await createDepthTexture(device, DEPTH_TEXTURE_SIZE, DEPTH_TEXTURE_SIZE);
+    this.shadowDepthView = shadowDepthTexture.createView({
+      // format: "depth32float"
+    });
+    this.shadowDepthSampler = this.device.createSampler({
+      magFilter: "linear",
+      minFilter: "linear",
+    });
+
+    const shadowShaderModule = device.createShaderModule({
+      label: "shadow shader module",
+      code: shadowShader,
+    });
+
+    // this.shadowBindGroupLayout = device.createBindGroupLayout({
+    //   label: "bind group layout",
+    //   entries: [
+    //     // Texture atlas
+    //     {
+    //       binding: 0,
+    //       visibility: GPUShaderStage.FRAGMENT,
+    //       texture: {},
+    //     },
+    //     {
+    //       binding: 1,
+    //       visibility: GPUShaderStage.FRAGMENT,
+    //       sampler: {},
+    //     },
+    //     // {
+    //     //   binding: 2,
+    //     //   visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+    //     //   buffer: {
+    //     //     type: "uniform"
+    //     //   },
+    //     // },
+    //   ]
+    // });
+
+    // const shadowPipelineLayout = device.createPipelineLayout({
+    //   label: "shadow pipeline layout",
+    //   bindGroupLayouts: [this.shadowBindGroupLayout],
+    // });
+
+    this.shadowPipeline = device.createRenderPipeline({
+      vertex: {
+        module: shadowShaderModule,
+        entryPoint: "vertexMain",
+        buffers: [
+          {
+            arrayStride: Mesh.structureLength * 4,
+            // stepMode: 'vertex', //default?
+            attributes: [
+              {
+                // position
+                shaderLocation: 0,
+                offset: 0,
+                format: 'float32x4',
+              },
+              {
+                // colors
+                shaderLocation: 1,
+                offset: 4 * 4,
+                format: 'float32x4',
+              },
+              {
+                // uv
+                shaderLocation: 2,
+                offset: 8 * 4,
+                format: 'float32x2',
+              },
+              {
+                // normal
+                shaderLocation: 3,
+                offset: 10 * 4,
+                format: 'float32x2',
+              },
+            ],
+          },
+        ],
+      },
+      fragment: {
+        module: shadowShaderModule,
+        entryPoint: "fragmentMain",
+        targets: [],
+      },
+      // layout: shadowPipelineLayout,
+      layout: 'auto',
+      depthStencil: {
+        depthCompare: "less",
+        depthWriteEnabled: true,
+        format: "depth32float",
+      },
+      primitive: {
+        topology: "triangle-list",
+        frontFace: "ccw",
+        cullMode: "none",
+      },
+    });
+
+    let module = device.createShaderModule({ code: wireframeShader });
 
 		const layout = device.createBindGroupLayout({
 			label: "wireframe layout",
@@ -273,6 +388,16 @@ export class Game {
         depthStoreOp: 'store',
       },
     } as GPURenderPassDescriptor;
+
+    this.shadowPassDescriptor = {
+      colorAttachments: [],
+      depthStencilAttachment: {
+        view: this.shadowDepthView,
+        depthClearValue: 1,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
+      },
+    }  as GPURenderPassDescriptor
   }
 
   async loadAssets () {
@@ -517,7 +642,15 @@ export class Game {
       entries: [
         { binding: 0, resource: sampler },
         { binding: 1, resource: texture.createView() },
-        { binding: 2, resource: lightUniformBuffer }
+        { binding: 2, resource: lightUniformBuffer },
+        // {
+        //   binding: 3,
+        //   resource: this.shadowDepthView,
+        // },
+        // {
+        //   binding: 4,
+        //   resource: this.shadowDepthSampler,
+        // },
       ],
     })
 
@@ -528,6 +661,104 @@ export class Game {
     this.passEncoder.setVertexBuffer(0, mesh.vertexBuffer)
     this.passEncoder.setIndexBuffer(mesh.indexBuffer, 'uint32')
     this.passEncoder.drawIndexed(mesh.indexBuffer.size / 4); // byte size of 4
+    // passEncoder.draw(36);
+  }
+
+  startDraw () {
+    this.commandEncoder = this.device.createCommandEncoder()
+  }
+
+  finishDraw () {
+    this.device.queue.submit([this.commandEncoder!.finish()])
+  }
+
+  renderShadow (mesh:Mesh, cam:Camera)  {
+    if (!this.shadowPass || !this.commandEncoder) {
+      throw 'In Game::renderShadow there are missing intialized encoders'
+    }
+    const { mvp: transformationMatrix, model } = this.getTransformationMatrices(mesh, cam)
+    this.device.queue.writeBuffer(
+      mesh.uniformBuffer,
+      0,
+      transformationMatrix.buffer,
+      transformationMatrix.byteOffset,
+      transformationMatrix.byteLength
+    )
+
+    this.device.queue.writeBuffer(
+      mesh.uniformBuffer,
+      64,
+      model.buffer,
+      model.byteOffset,
+      model.byteLength
+    )
+
+    const texture = mesh.texture || makeTexture(this.device)
+
+    const sampler = this.device.createSampler({
+      magFilter: 'nearest', // linear for smooth
+      minFilter: 'nearest', // linear for smooth
+    });
+
+    const lightBufferSize = 4 * 32;
+    const lightUniformBuffer = this.device.createBuffer({
+      size: lightBufferSize,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    })
+
+    const light = vec3.normalize(this.lightDir)
+    const dirColor = vec3.create(0.8, 0.8, 0.8)
+    const ambientColor = vec3.create(0.7, 0.7, 0.7)
+
+    const fogColor = vec4.create(0.3, 0.3, 0.3, 1.0)
+    const fogDensity = new Float32Array([0.0])
+
+    
+
+    // this.uniformBindGroup = this.device.createBindGroup({
+    //   layout: this.pipeline.getBindGroupLayout(0),
+    //   entries: [
+    //     { binding: 0, resource: sampler },
+    //     { binding: 1, resource: texture.createView() },
+    //     { binding: 2, resource: lightUniformBuffer }
+    //   ],
+    // })
+
+    this.shadowBindGroup = this.device.createBindGroup({
+      label: "bind group",
+      layout: this.shadowPipeline.getBindGroupLayout(0),
+      // layout: this.shadowBindGroupLayout,
+      entries: [
+        // Texture atlas
+        {
+          binding: 0,
+          resource: texture,
+        },
+        {
+          binding: 1,
+          resource: sampler,
+        },
+        // {
+        //   binding: 2,
+        //   resource: {buffer: mesh.uniformBuffer},
+        // },
+      ],
+    });
+
+    const meshUniformGroup = this.device.createBindGroup({
+      layout: this.shadowPipeline.getBindGroupLayout(1),
+      entries: [
+        { binding: 2, resource: mesh.uniformBuffer }
+      ]
+    })
+
+    this.shadowPass.setPipeline(this.shadowPipeline);
+    this.shadowPass.setBindGroup(0, this.shadowBindGroup)
+    this.shadowPass.setBindGroup(1, meshUniformGroup)
+    // this.shadowPass.setBindGroup(2, lightUniformBuffer)
+    this.shadowPass.setVertexBuffer(0, mesh.vertexBuffer)
+    this.shadowPass.setIndexBuffer(mesh.indexBuffer, 'uint32')
+    this.shadowPass.drawIndexed(mesh.indexBuffer.size / 4); // byte size of 4
     // passEncoder.draw(36);
   }
 
@@ -560,14 +791,12 @@ export class Game {
   }
 
   begin () {
-    this.commandEncoder = this.device.createCommandEncoder()
-
     // get the contexts current texture to render to
     ;(this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.context
       .getCurrentTexture()
       .createView()
 
-    this.passEncoder = this.commandEncoder.beginRenderPass(this.renderPassDescriptor)
+    this.passEncoder = this.commandEncoder!.beginRenderPass(this.renderPassDescriptor)
   }
 
   end () {
@@ -575,7 +804,23 @@ export class Game {
       throw 'In Game::end missing intialized encoders'
     }
     this.passEncoder.end()
-    this.device.queue.submit([this.commandEncoder.finish()])
+  }
+
+  beginShadow () {
+    // // get the contexts current texture to render to
+    // ;(this.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = this.context
+    //   .getCurrentTexture()
+    //   .createView()
+
+    this.shadowPass = this.commandEncoder!.beginRenderPass(this.shadowPassDescriptor)
+  }
+
+  endShadow () {
+    if (!this.shadowPass || !this.commandEncoder) {
+      throw 'In Game::end missing intialized encoders'
+    }
+    this.shadowPass.end()
+    // this.device.queue.submit([this.commandEncoder.finish()])
   }
 }
 

@@ -200,12 +200,17 @@ export class TestScene1 extends Scene {
   }
 
   draw() {
-    this.game.begin()
-
+    this.game.startDraw()
     // sort meshes by distance and render the billboards second so they cannot overlap on the alphas
     this.meshes.sort((a, b) => {
       return vec3.dist(b.pos, this.cam.pos) - vec3.dist(a.pos, this.cam.pos)
     })
+
+    this.game.beginShadow()
+    this.meshes.forEach(m => this.game.renderShadow(m, this.cam))
+    this.game.endShadow()
+
+    this.game.begin()
     this.meshes.filter(m => !m.billboard).forEach((m) => this.game.renderMesh(m, this.cam))
     this.meshes.filter(m => m.billboard).forEach((m) => this.game.renderMesh(m, this.cam))
     if (Debug.on) {
@@ -213,5 +218,6 @@ export class TestScene1 extends Scene {
     }
     // this.renderBB(this.meshes[this.meshes.length - 1])
     this.game.end()
+    this.game.finishDraw()
   }
 }

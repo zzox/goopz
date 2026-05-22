@@ -9,7 +9,7 @@ import { TestScene1 } from './scenes/test-scene-1'
 const canvas:HTMLCanvasElement = $id('main-canvas') as HTMLCanvasElement
 const fixed:HTMLDivElement = $id('canvas-debug') as HTMLDivElement
 
-const game = new Game(canvas, FieldTest, fixed)
+const game = new Game(canvas, TestScene1, fixed)
 
 setAndUpdateNum('light-x', game.lightDir[0], (val) => game.lightDir[0] = val)
 setAndUpdateNum('light-y', game.lightDir[1], (val) => game.lightDir[1] = val)
