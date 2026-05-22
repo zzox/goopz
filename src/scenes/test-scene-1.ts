@@ -40,6 +40,8 @@ export class TestScene1 extends Scene {
     // this.meshes[2].anchor[2] = 6
     this.meshes[1].anchor[1] = 1
 
+    this.meshes[0].pos[2] = 5
+
     const wall1 = this.makeMesh(makeWall(vec2.create(-4, 4), vec2.create(-4, -4), 4))
     wall1.texture = this.game.textures.get('mario_fill')
     const wall2 = this.makeMesh(makeWall(vec2.create(-4, -4), vec2.create(0, -12), 4))

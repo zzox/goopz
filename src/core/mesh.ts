@@ -73,7 +73,7 @@ export class Mesh {
     new Uint32Array(this.indexBuffer.getMappedRange()).set(ib)
     this.indexBuffer.unmap();
 
-    const uniformBufferSize = 4 * 16 * 2; // 2 4x4 matrices
+    const uniformBufferSize = 4 * 16 * 3; // 2 4x4 matrices
     this.uniformBuffer = device.createBuffer({
       size: uniformBufferSize,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,

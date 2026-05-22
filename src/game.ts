@@ -1,4 +1,4 @@
-import { mat4, Vec3, vec3, vec4 } from 'wgpu-matrix'
+import { Mat4, mat4, Vec3, vec3, vec4 } from 'wgpu-matrix'
 import { Mesh } from './core/mesh'
 import { makeTexture } from './core/texture'
 import { defaultVert, defaultFrag, wireframeShader, shadowShader } from './core/shaders'
@@ -27,6 +27,9 @@ export class Game {
   shadowPipeline!:GPURenderPipeline
   shadowPass?:GPURenderPassEncoder
   shadowBindGroupLayout!:GPUBindGroupLayout
+
+  orthoLight!:Mat4
+  lightPos!:Mat4
 
   passEncoder?:GPURenderPassEncoder
   commandEncoder?:GPUCommandEncoder
@@ -225,6 +228,8 @@ export class Game {
       label: "shadow shader module",
       code: shadowShader,
     });
+
+    this.orthoLight = mat4.ortho(-20, 20, -20, 20, 0.1, 500)
 
     // this.shadowBindGroupLayout = device.createBindGroupLayout({
     //   label: "bind group layout",
@@ -577,6 +582,16 @@ export class Game {
       model.byteLength
     )
 
+    const lightMat = mat4.mul(this.orthoLight, mat4.translation(vec3.create(0, 5, 5)))
+
+    this.device.queue.writeBuffer(
+      mesh.uniformBuffer,
+      128,
+      lightMat.buffer,
+      lightMat.byteOffset,
+      lightMat.byteLength
+    )
+
     const texture = mesh.texture || makeTexture(this.device)
 
     const sampler = this.device.createSampler({
@@ -643,14 +658,14 @@ export class Game {
         { binding: 0, resource: sampler },
         { binding: 1, resource: texture.createView() },
         { binding: 2, resource: lightUniformBuffer },
-        // {
-        //   binding: 3,
-        //   resource: this.shadowDepthView,
-        // },
-        // {
-        //   binding: 4,
-        //   resource: this.shadowDepthSampler,
-        // },
+        {
+          binding: 3,
+          resource: this.shadowDepthView,
+        },
+        {
+          binding: 4,
+          resource: this.shadowDepthSampler,
+        },
       ],
     })
 
@@ -691,6 +706,16 @@ export class Game {
       model.buffer,
       model.byteOffset,
       model.byteLength
+    )
+
+    const lightMat = mat4.mul(this.orthoLight, mat4.translation(vec3.create(0, 5, 5)))
+
+    this.device.queue.writeBuffer(
+      mesh.uniformBuffer,
+      128,
+      lightMat.buffer,
+      lightMat.byteOffset,
+      lightMat.byteLength
     )
 
     const texture = mesh.texture || makeTexture(this.device)

@@ -29,9 +29,18 @@ fn main(
 }`
 
 export const defaultFrag = `
+// struct VertexOutput {
+//   @builtin(position) Position : vec4f,
+//   @location(0) fragUV : vec2f,
+//   @location(1) fragColor : vec4f,
+//   @location(2) normal : vec3f,
+// }
+
 @group(0) @binding(0) var mySampler: sampler;
 @group(0) @binding(1) var myTexture: texture_2d<f32>;
 @group(0) @binding(2) var<uniform> light : Lighting;
+@group(0) @binding(3) var shadowTextureView: texture_depth_2d;
+@group(0) @binding(4) var shadowTextureSampler: sampler;
 
 struct Lighting {
   lightDir : vec3f,
@@ -56,6 +65,24 @@ fn fog(density : f32, frag_coord : vec4f) -> f32 {
   return 1.0 - clamp(exp2(d * d * LOG2), 0.0, 1.0);
 }
 
+// fn shadow(in: VertexOutput) -> f32 {
+//   let u = (in.light_pos.x + 1) * 0.5;
+//   let v = (-1 * in.light_pos.y + 1) * 0.5;
+//   let lightDepth = textureSample(shadowTextureView, shadowTextureSampler, vec2f(u, v));
+
+//   if (u < 0.0 || v < 0.0 || u >= 1.0 || v >= 1.0) {
+//     // Set this to zero to debug the orthographic frustum
+//     return 1.0;
+//   }
+
+//   let bias = 0.0005;
+//   if (in.light_pos.z < lightDepth + bias) {
+//     return 1.0;
+//   }
+
+//   return 0.0;
+// }
+
 @fragment
 fn main(
   @builtin(position) Position : vec4f,
@@ -63,6 +90,11 @@ fn main(
   @location(1) fragColor: vec4f,
   @location(2) normal: vec3f
 ) -> @location(0) vec4f {
+  // let lightDepth = textureSample(shadowTextureView, shadowTextureSampler, fragUV);
+  let atlas_dimensions = textureDimensions(shadowTextureView);
+  let texel_coords = vec2u(fragUV * vec2f(atlas_dimensions));
+  let lightDepth = textureLoad(shadowTextureView, texel_coords, 0); 
+
   let texColor = textureSample(myTexture, mySampler, fragUV) * fragColor;
   let lightColor = saturate(light.ambientColor + max(dot(normalize(normal), light.lightDir), 0.0) * light.dirColor);
   let color = vec4f(texColor.rgb * lightColor * texColor.a, texColor.a);
@@ -72,7 +104,8 @@ fn main(
 export const wireframeShader = `
 struct Uniforms {
   modelViewProjectionMatrix : mat4x4f,
-  modelMatrix : mat4x4f
+  modelMatrix : mat4x4f,
+  lightProj : mat4x4f,
 }
 
 struct VSOut {
@@ -145,16 +178,16 @@ struct VertexInput {
 //   @location(6) model_matrix_3: vec4<f32>,
 // }
 
-// struct Uniforms {
-//   modelViewProjectionMatrix : mat4x4f,
-//   modelMatrix : mat4x4f,
-//   lightProj : mat4x4f,
-// }
-
 struct Uniforms {
   modelViewProjectionMatrix : mat4x4f,
-  modelMatrix : mat4x4f
+  modelMatrix : mat4x4f,
+  lightProj : mat4x4f,
 }
+
+// struct Uniforms {
+//   modelViewProjectionMatrix : mat4x4f,
+//   modelMatrix : mat4x4f
+// }
 // @group(1) @binding(2) var<uniform> uniforms : Uniforms;
 
 struct VertexOutput {
@@ -179,8 +212,8 @@ fn vertexMain(in: VertexInput) -> VertexOutput {
   //   instance.model_matrix_2,
   //   instance.model_matrix_3,
   // );
-  // output.clip_pos = uniforms.lightProj * uniforms.modelMatrix * vec4f(in.pos.xyz, 1);
-  output.clip_pos = uniforms.modelMatrix * vec4f(in.pos.xyz, 1);
+  output.clip_pos = uniforms.lightProj * uniforms.modelMatrix * vec4f(in.pos.xyz, 1);
+  // output.clip_pos = uniforms.modelMatrix * vec4f(in.pos.xyz, 1);
   output.uv = in.uv;
   return output;
 }
